@@ -7,7 +7,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-this-secret-key-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
-    CORS_ORIGINS: List[str] = ["*"]
+    # Same-origin app (this service serves its own frontend) — no cross-origin
+    # caller exists today. Empty by default rather than "*", since "*" combined
+    # with allow_credentials=True makes the CORS middleware reflect any Origin
+    # header, which is unnecessary attack surface with zero functional upside.
+    CORS_ORIGINS: List[str] = []
 
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""

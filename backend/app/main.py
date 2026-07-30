@@ -33,6 +33,15 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 async def _capture_event_loop():
     ws_manager.set_event_loop(asyncio.get_running_loop())
 
+@app.middleware("http")
+async def _security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    return response
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
