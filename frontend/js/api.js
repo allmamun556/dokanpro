@@ -196,6 +196,10 @@ function toggleNavMenu(id) {
   document.getElementById(id).classList.toggle("open");
 }
 
+function toggleMobileNav() {
+  document.querySelector(".navbar").classList.toggle("mobile-open");
+}
+
 function _escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str;
@@ -369,6 +373,7 @@ async function renderNav(activeHref) {
         <span class="role-badge">${user.role}</span>
         <button class="btn-logout" onclick="logout()">Log out</button>
       </div>
+      <button type="button" class="nav-hamburger" onclick="toggleMobileNav()" aria-label="Menu">&#9776;</button>
     </div>
   `;
 

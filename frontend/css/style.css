@@ -100,6 +100,26 @@ h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing:
 }
 .btn-logout:hover { background: var(--navbar-hover); }
 
+/* .nav-links (7 top-level items for an admin) + .nav-user have no wrap, so
+   their combined min-content forces the layout viewport wider than any
+   phone/tablet screen — the browser was silently rendering ~1039px wide
+   even when told to emulate a 390px device. Collapse both into a hamburger
+   drawer below the tablet breakpoint instead of letting them force width. */
+.nav-hamburger {
+  display: none;
+  background: none; border: 1px solid var(--navbar-border); color: #fff;
+  font-size: 20px; line-height: 1; padding: 6px 10px; border-radius: 8px; cursor: pointer;
+}
+@media (max-width: 900px) {
+  .navbar { flex-wrap: wrap; row-gap: 10px; height: auto; padding-top: 10px; padding-bottom: 10px; }
+  .nav-hamburger { display: inline-flex; order: 1; }
+  .nav-links, .nav-user { display: none; width: 100%; flex-direction: column; align-items: stretch; gap: 4px; order: 2; }
+  .nav-user { flex-direction: row; flex-wrap: wrap; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--navbar-border); }
+  .navbar.mobile-open .nav-links,
+  .navbar.mobile-open .nav-user { display: flex; }
+  .nav-dropdown-menu { position: static; box-shadow: none; margin-top: 4px; width: 100%; }
+}
+
 /* --- Layout --- */
 .page { max-width: 1280px; margin: 0 auto; padding: 24px; }
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
@@ -150,6 +170,10 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
 
 /* --- Table --- */
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
+/* Tables have many columns and no responsive column-hiding, so on a phone
+   they need to scroll horizontally within their own card instead of forcing
+   the whole page (and thus the layout viewport) wider than the screen. */
+.card:has(table) { overflow-x: auto; }
 th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
 th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; }
 tr:hover { background: #fdf8f2; }
@@ -173,7 +197,10 @@ tr:hover { background: #fdf8f2; }
   background: linear-gradient(135deg, #7c2d12, #241811);
 }
 .login-card {
-  width: 380px; background: #fff; border-radius: 16px; padding: 36px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+  width: 380px; max-width: 90vw; min-width: 0; background: #fff; border-radius: 16px; padding: 36px; box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+}
+@media (max-width: 480px) {
+  .login-card { padding: 24px; }
 }
 .login-card h1 { text-align: center; margin: 0 0 4px; font-size: 25px; }
 .login-card .subtitle { text-align: center; color: var(--text-muted); margin-bottom: 24px; font-size: 14px; }
