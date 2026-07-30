@@ -314,7 +314,12 @@ async function renderNav(activeHref) {
     user = await fetchCurrentUser();
     await fetchBusinessSettings();
   } catch (e) {
-    logout();
+    // A real 401 already triggers clearToken() + redirect inside apiFetch
+    // itself — forcing logout() here too was redundant for that case, and
+    // actively wrong for any other rejection (e.g. the fetch getting aborted
+    // because the user navigated to a different page while this was still
+    // in flight, or a transient network/server error). Those aren't auth
+    // failures and shouldn't wipe a still-valid session token.
     return;
   }
 
