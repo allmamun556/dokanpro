@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Dashboard</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Dashboard</h1>
+    </div>
+
+    <div class="grid grid-3" style="margin-bottom:16px;">
+      <div class="stat-card">
+        <div class="label">Today's Sales</div>
+        <div class="value" id="stat-today">—</div>
+        <div class="label" id="stat-today-orders" style="margin-top:6px;"></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Yesterday's Sales</div>
+        <div class="value" id="stat-yesterday">—</div>
+        <div class="label" id="stat-yesterday-orders" style="margin-top:6px;"></div>
+      </div>
+      <div class="stat-card">
+        <div class="label">This Month's Sales</div>
+        <div class="value" id="stat-month">—</div>
+        <div class="label" id="stat-month-orders" style="margin-top:6px;"></div>
+      </div>
+    </div>
+
+    <div class="grid grid-4" style="margin-bottom:20px;">
+      <div class="stat-card">
+        <div class="label">Today's Profit</div>
+        <div class="value" id="stat-today-profit">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">This Month's Profit</div>
+        <div class="value" id="stat-month-profit">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Low Stock Items</div>
+        <div class="value" id="stat-lowstock">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Expiring Soon (30d)</div>
+        <div class="value" id="stat-expiring">—</div>
+      </div>
+    </div>
+    <div style="font-size:12px; color:var(--text-muted); margin:-12px 0 20px;">
+      Profit = net sales − cost of goods sold − expenses. Uses each product's current cost, not a historical snapshot — an estimate, not audit-grade accounting.
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3 style="margin-top:0;">Sales — Last 14 Days</h3>
+        <canvas id="daily-sales-chart" height="220"></canvas>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Top Selling Products (30 days)</h3>
+        <table>
+          <thead><tr><th>Product</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+          <tbody id="top-products-rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>

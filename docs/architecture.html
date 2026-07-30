@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DokanPro Docs — System Architecture</title>
+<link rel="stylesheet" href="assets/docs.css" />
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Dokan<span>Pro</span></span>
+  <span class="tag">Documentation</span>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Getting Started</a>
+    <div class="group-label">Architecture</div>
+    <a href="architecture.html" class="active">System Architecture</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="database.html">Database Schema</a>
+    <div class="group-label">Reference</div>
+    <a href="api-reference.html">API Reference</a>
+    <a href="roles-permissions.html">Roles &amp; Permissions</a>
+    <a href="payments.html">Payments</a>
+    <div class="group-label">Operations</div>
+    <a href="security-hardening.html">Security &amp; Hardening</a>
+    <a href="deployment.html">Deployment</a>
+    <a href="design-system.html">Design System</a>
+    <div class="group-label">Project</div>
+    <a href="roadmap.html">Roadmap &amp; Status</a>
+  </nav>
+  <main>
+    <h1>System Architecture</h1>
+    <p class="lede">A modular monolith. One backend process serves the API and both frontends. No microservices, no build step, no framework on the client.</p>
+
+    <h2>Tech stack</h2>
+    <table>
+      <tr><th>API</th><td>FastAPI (Python), sync route handlers (not <code>async def</code>) — matches the SQLAlchemy-sync-session convention used throughout</td></tr>
+      <tr><th>ORM / DB</th><td>SQLAlchemy 2.0 + PostgreSQL 16, Alembic for migrations</td></tr>
+      <tr><th>Auth</th><td>JWT (python-jose), two independent token types (staff vs. customer) sharing one secret but disambiguated by a <code>type</code> claim</td></tr>
+      <tr><th>Frontend</th><td>Vanilla HTML/CSS/JS — no React/Vue, no bundler, no npm build. Pages are static files served directly by FastAPI's <code>StaticFiles</code>/<code>FileResponse</code></td></tr>
+      <tr><th>Payments</th><td>Stripe (Checkout Sessions, Connect Standard accounts, Subscriptions, webhooks)</td></tr>
+      <tr><th>Email</th><td>Resend (transactional email for notifications/welcome messages)</td></tr>
+      <tr><th>Rate limiting</th><td>slowapi, in-memory backend (correct for this single-process deployment)</td></tr>
+      <tr><th>Container</th><td>Docker Compose — two services, <code>backend</code> and <code>db</code></td></tr>
+    </table>
+
+    <h2>Why a modular monolith</h2>
+    <p>Everything runs as one Python process. This was a deliberate choice, not a limitation: the app is a set of related admin/ordering workflows for a single restaurant business at a time, not a system with independently-scaling components. A monolith means one deployment, one database connection pool, one thing to monitor — appropriate for the actual scale (a handful of restaurants, not thousands of concurrent tenants) and dramatically simpler to build, debug, and host without a credit card.</p>
+
+    <h2>Two frontends, one backend</h2>
+    <p>The single FastAPI process serves three distinct surfaces:</p>
+    <div class="grid-cards">
+      <div class="card">
+        <h4>Staff app</h4>
+        <p><code>frontend/*.html</code> + <code>frontend/js/*.js</code>. POS checkout, inventory, orders, reports, admin. JWT auth, permission-gated.</p>
+      </div>
+      <div class="card">
+        <h4>Customer site</h4>
+        <p><code>frontend/site/*.html</code> + <code>frontend/site/js/*.js</code>. Menu browsing, cart, checkout, reservations, account. Separate JWT auth (or fully anonymous/guest).</p>
+      </div>
+      <div class="card">
+        <h4>REST API</h4>
+        <p><code>/api/*</code> for staff, <code>/api/public/*</code> for customers. Documented in <a href="api-reference.html">API Reference</a>.</p>
+      </div>
+    </div>
+    <p>Both frontends are plain static files with no build step — a page links to the next page with a normal <code>&lt;a href&gt;</code>, and JS talks to the API with plain <code>fetch()</code>. This keeps local development trivial: edit a file, refresh the browser.</p>
+
+    <h2>Request flow — a checkout, end to end</h2>
+    <ol>
+      <li>Customer browses <code>/t/{slug}/site/menu.html</code>, adds items to a cart (stored in <code>localStorage</code>).</li>
+      <li><code>POST /api/public/checkout</code> — validates stock, <strong>prices every line server-side</strong> (never trusts a client-sent price), reserves inventory immediately (before payment, to prevent overselling), creates an <code>Order</code> in <code>fulfillment_status=pending</code>.</li>
+      <li>Creates a Stripe Checkout Session <em>on the restaurant's own connected Stripe account</em> (<code>stripe_account=...</code>) — the charge goes straight to them, not the platform. See <a href="payments.html">Payments</a>.</li>
+      <li>Customer is redirected to Stripe's hosted checkout page, pays.</li>
+      <li>Stripe fires a webhook to <code>/api/public/webhooks/stripe-connect</code> — signature verified, order looked up by <code>metadata.order_id</code>, flipped to <code>confirmed</code>, a confirmation email queued, and a WebSocket broadcast pushed to any open Kitchen Display / Online Orders screens for that business.</li>
+      <li>Staff sees the order appear within ~1 second via the WebSocket push (polling every 15s remains as a fallback if the socket drops).</li>
+    </ol>
+
+    <h2>Real-time updates</h2>
+    <p>An in-process <code>ws_manager.py</code> tracks connected WebSocket clients (each staff connection is authenticated by JWT at connect time and tagged with its <code>business_id</code>) and broadcasts order-changed events. Since routes are synchronous, a broadcast from a sync handler schedules itself onto the async event loop via <code>asyncio.run_coroutine_threadsafe()</code> — the event loop reference is captured once at app startup.</p>
+    <p>Broadcasts are filtered by <code>business_id</code> so one tenant's Kitchen Display never sees another tenant's orders — verified directly by intercepting the actual WebSocket messages in two simultaneous browser sessions.</p>
+
+    <h2>Project structure</h2>
+    <pre><code>pos-system/
+├── backend/
+│   ├── app/
+│   │   ├── api/            # one file per route group (~32 files)
+│   │   ├── core/           # config, security, permissions, tenant middleware, rate limiting
+│   │   ├── db/              # session, tenant query-scoping
+│   │   ├── models/          # SQLAlchemy models (~20 files)
+│   │   ├── schemas/         # Pydantic request/response models
+│   │   ├── services/        # business logic shared across routes
+│   │   ├── main.py          # app assembly, routing, static file serving
+│   │   ├── seed.py          # idempotent demo data
+│   │   └── create_tenant.py # CLI tenant creation
+│   ├── alembic/versions/    # migration history
+│   └── scripts/             # backup_db.sh / restore_db.sh
+├── frontend/
+│   │   ├── *.html, js/      # staff app (~25 pages)
+│   │   └── site/            # customer site (~12 pages)
+├── docs/                    # this documentation
+└── docker-compose.yml
+</code></pre>
+
+    <footer class="page-footer">Next: <a href="multi-tenancy.html">how tenant isolation actually works</a>.</footer>
+  </main>
+</div>
+</body>
+</html>

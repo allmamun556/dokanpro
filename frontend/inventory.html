@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Inventory</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Inventory & Products</h1>
+      <div style="display:flex; gap:10px;">
+        <div class="export-dropdown">
+          <button class="btn btn-secondary" onclick="toggleExportMenu('inv-export-menu')">Export ▾</button>
+          <div class="export-menu" id="inv-export-menu">
+            <button onclick="exportInventory('csv')">CSV</button>
+            <button onclick="exportInventory('pdf')">PDF</button>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="openProductModal()">+ New Product</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-filter="all" onclick="setFilter('all')">All</div>
+      <div class="tab" data-filter="low" onclick="setFilter('low')">Low Stock</div>
+      <div class="tab" data-filter="expiring" onclick="setFilter('expiring')">Expiring</div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>SKU</th>
+            <th>Name</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Tax %</th>
+            <th>Stock</th>
+            <th>Reorder Level</th>
+            <th>Expiry</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="product-rows"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state" style="display:none;">No products found.</div>
+    </div>
+  </div>
+
+  <!-- New / Edit Product Modal -->
+  <div id="product-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <h3 id="modal-title">New Product</h3>
+      <form id="product-form">
+        <input type="hidden" id="p-id" />
+        <div class="form-row">
+          <div>
+            <label>SKU</label>
+            <input type="text" id="p-sku" required />
+          </div>
+          <div>
+            <label>Name</label>
+            <input type="text" id="p-name" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div>
+            <label>Category</label>
+            <select id="p-category"></select>
+          </div>
+          <div>
+            <label>Brand</label>
+            <select id="p-brand"></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div>
+            <label>Unit</label>
+            <select id="p-unit"></select>
+          </div>
+          <div>
+            <label>Price</label>
+            <input type="number" id="p-price" step="0.01" min="0" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div>
+            <label>Cost</label>
+            <input type="number" id="p-cost" step="0.01" min="0" value="0" />
+          </div>
+          <div>
+            <label>Tax rate (%)</label>
+            <input type="number" id="p-tax" step="0.01" min="0" value="0" />
+          </div>
+        </div>
+        <div class="form-row" id="initial-stock-row">
+          <div>
+            <label>Initial stock</label>
+            <input type="number" id="p-initial-qty" min="0" value="0" />
+          </div>
+          <div>
+            <label>Reorder level</label>
+            <input type="number" id="p-reorder" min="0" value="5" />
+          </div>
+        </div>
+        <label>Expiry date (optional)</label>
+        <input type="date" id="p-expiry" />
+
+        <label>Description (menu/online listing, optional)</label>
+        <textarea id="p-description" rows="2"></textarea>
+        <div class="form-row">
+          <div>
+            <label>Allergens (optional)</label>
+            <input type="text" id="p-allergens" placeholder="e.g. Gluten, Eggs" />
+          </div>
+          <div>
+            <label>Calories (optional)</label>
+            <input type="number" id="p-calories" min="0" />
+          </div>
+        </div>
+        <label style="display:flex; align-items:center; gap:8px; font-weight:400;">
+          <input type="checkbox" id="p-available-online" style="width:auto; margin:0;" checked />
+          Available on the online menu
+        </label>
+
+        <label>Product image (optional)</label>
+        <div style="display:flex; gap:12px; align-items:center; margin-bottom:14px;">
+          <img id="p-image-preview" src="" style="display:none; width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid var(--border);" />
+          <input type="file" id="p-image-file" accept="image/jpeg,image/png,image/webp,image/gif" style="margin-bottom:0;" />
+          <button type="button" class="btn btn-danger btn-sm" id="p-image-remove-btn" style="display:none;" onclick="removeProductImage()">Remove</button>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Save</button>
+          <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeProductModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Adjust Stock Modal -->
+  <div id="adjust-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <h3>Adjust Stock — <span id="adjust-product-name"></span></h3>
+      <form id="adjust-form">
+        <input type="hidden" id="adjust-product-id" />
+        <label>Reason</label>
+        <select id="adjust-reason">
+          <option value="restock">Restock</option>
+          <option value="adjustment">Adjustment</option>
+        </select>
+        <label>Quantity change (use negative numbers to reduce stock)</label>
+        <input type="number" id="adjust-qty" required />
+        <label>Reference / note (optional)</label>
+        <input type="text" id="adjust-reference" />
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Apply</button>
+          <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeAdjustModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/inventory.js"></script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Login</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <h1>DokanPro</h1>
+      <div class="subtitle">Sign in to continue</div>
+
+      <div id="error-box"></div>
+
+      <form id="login-form">
+        <label for="email">Email</label>
+        <input type="email" id="email" required placeholder="admin@possystem.dev" />
+
+        <label for="password">Password</label>
+        <input type="password" id="password" required placeholder="••••••••" />
+
+        <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+      </form>
+
+      <div class="login-hint">
+        Demo accounts (after running the seed script):<br />
+        admin@possystem.dev / admin123 (Admin)<br />
+        manager@possystem.dev / manager123 (Manager)<br />
+        cashier@possystem.dev / cashier123 (Cashier)
+      </div>
+
+      <div class="login-hint" style="margin-top:8px;">
+        New restaurant? <a href="signup.html">Create your account</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    function landingPageFor(user) {
+      return hasPermission(user, "reports.profit") ? "dashboard.html" : "pos.html";
+    }
+
+    // If already logged in, skip straight to the right landing page
+    if (getToken()) {
+      fetchCurrentUser()
+        .then((user) => (window.location.href = landingPageFor(user)))
+        .catch(() => {}); // invalid/expired token: stay on the login form
+    }
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const errorBox = document.getElementById("error-box");
+      errorBox.innerHTML = "";
+
+      const body = new URLSearchParams();
+      body.append("username", email);
+      body.append("password", password);
+
+      try {
+        const headers = { "Content-Type": "application/x-www-form-urlencoded" };
+        const slug = getBusinessSlug();
+        if (slug) headers["X-Business-Slug"] = slug;
+        const res = await fetch(API_BASE + "/auth/login", {
+          method: "POST",
+          headers,
+          body,
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: "Login failed" }));
+          throw new Error(err.detail || "Login failed");
+        }
+        const data = await res.json();
+        setToken(data.access_token);
+        window.location.href = landingPageFor(data.user);
+      } catch (err) {
+        errorBox.innerHTML = `<div class="error-msg">${err.message}</div>`;
+      }
+    });
+  </script>
+</body>
+</html>

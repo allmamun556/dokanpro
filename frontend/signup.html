@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Create Your Restaurant Account</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <h1>DokanPro</h1>
+      <div class="subtitle">Create your restaurant's account</div>
+
+      <div id="error-box"></div>
+
+      <form id="signup-form">
+        <label for="business-name">Restaurant Name</label>
+        <input type="text" id="business-name" required placeholder="Bavaria Genuss Restaurant" />
+
+        <label for="slug">Your URL</label>
+        <div style="display:flex; align-items:center; gap:4px; font-size:13px; color:var(--text-muted, #666);">
+          <span>/t/</span>
+          <input type="text" id="slug" required placeholder="bavaria-genuss" style="flex:1;" />
+          <span>/</span>
+        </div>
+        <div id="slug-status" style="font-size:12px; min-height:16px; margin-top:2px;"></div>
+
+        <label for="admin-name">Your Name</label>
+        <input type="text" id="admin-name" required placeholder="Jane Doe" />
+
+        <label for="admin-email">Email</label>
+        <input type="email" id="admin-email" required placeholder="you@example.com" />
+
+        <label for="admin-password">Password</label>
+        <input type="password" id="admin-password" required minlength="8" placeholder="At least 8 characters" />
+
+        <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Create Account</button>
+      </form>
+
+      <div class="login-hint">
+        Already have an account? <a href="index.html">Sign in</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    const businessNameEl = document.getElementById("business-name");
+    const slugEl = document.getElementById("slug");
+    const slugStatusEl = document.getElementById("slug-status");
+    const submitBtn = document.getElementById("submit-btn");
+
+    let slugEditedManually = false;
+    let slugAvailable = null;
+    let slugCheckTimer = null;
+
+    function slugify(text) {
+      return text
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 50);
+    }
+
+    businessNameEl.addEventListener("input", () => {
+      if (!slugEditedManually) {
+        slugEl.value = slugify(businessNameEl.value);
+        checkSlug();
+      }
+    });
+
+    slugEl.addEventListener("input", () => {
+      slugEditedManually = true;
+      slugEl.value = slugify(slugEl.value);
+      checkSlug();
+    });
+
+    function checkSlug() {
+      clearTimeout(slugCheckTimer);
+      const slug = slugEl.value;
+      if (slug.length < 3) {
+        slugStatusEl.textContent = slug.length ? "Too short (min 3 characters)" : "";
+        slugStatusEl.style.color = "var(--danger, #c0392b)";
+        slugAvailable = false;
+        return;
+      }
+      slugStatusEl.textContent = "Checking…";
+      slugStatusEl.style.color = "var(--text-muted, #666)";
+      slugCheckTimer = setTimeout(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/signup/check-slug?slug=${encodeURIComponent(slug)}`);
+          const data = await res.json();
+          slugAvailable = data.available;
+          slugStatusEl.textContent = data.available ? `✓ /t/${slug}/ is available` : "That URL is already taken";
+          slugStatusEl.style.color = data.available ? "var(--success, #2e7d32)" : "var(--danger, #c0392b)";
+        } catch (e) {
+          slugStatusEl.textContent = "";
+        }
+      }, 400);
+    }
+
+    document.getElementById("signup-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const errorBox = document.getElementById("error-box");
+      errorBox.innerHTML = "";
+
+      if (slugAvailable === false) {
+        errorBox.innerHTML = `<div class="error-msg">Please choose an available URL first.</div>`;
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Creating…";
+
+      try {
+        const res = await fetch(`${API_BASE}/signup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            business_name: businessNameEl.value.trim(),
+            slug: slugEl.value,
+            admin_name: document.getElementById("admin-name").value.trim(),
+            admin_email: document.getElementById("admin-email").value.trim(),
+            admin_password: document.getElementById("admin-password").value,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: "Signup failed" }));
+          throw new Error(err.detail || "Signup failed");
+        }
+        const data = await res.json();
+        setToken(data.access_token);
+        window.location.href = `/t/${data.business_slug}/dashboard.html`;
+      } catch (err) {
+        errorBox.innerHTML = `<div class="error-msg">${err.message}</div>`;
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Create Account";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bavaria Genuss Restaurant</title>
+  <link rel="stylesheet" href="/site/css/site.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#c2410c" />
+  <link rel="apple-touch-icon" href="/site/icons/icon-192.svg" />
+</head>
+<body>
+  <div id="site-nav"></div>
+
+  <div class="site-page">
+    <div class="hero">
+      <h1>Bavaria Genuss Restaurant</h1>
+      <p>Traditionelle bayerische Küche in München — for locals, tourists, and everyone who loves good food.</p>
+      <div class="cta">
+        <a href="reservations.html" class="btn btn-accent" data-i18n="home.reserveTable">Reserve a Table</a>
+        <a href="menu.html" class="btn btn-secondary" data-i18n="home.orderOnline">Order Online</a>
+      </div>
+    </div>
+
+    <div id="recommendations-section" style="display:none; margin-bottom:32px;">
+      <h2 data-i18n="home.recommended">Recommended for You</h2>
+      <div class="menu-items" id="recommendations-items"></div>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <h3 data-i18n="home.openingHours">Opening Hours</h3>
+        <p>Mon–Fri: 11:30 – 22:00<br />Sat–Sun: 12:00 – 23:00</p>
+      </div>
+      <div class="info-card">
+        <h3 data-i18n="home.location">Location</h3>
+        <p>Musterstraße 12<br />80331 München</p>
+      </div>
+      <div class="info-card">
+        <h3 data-i18n="home.contact">Contact</h3>
+        <p>+49 89 1234 5678<br />info@bavaria-genuss.example</p>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <h3 data-i18n="home.aboutUs">About Us</h3>
+      <p>
+        Since 1998, Bavaria Genuss has served traditional Bavarian dishes — Schnitzel, Knödel,
+        and Gulaschsuppe — made from local, seasonal ingredients. Whether you're stopping by for
+        lunch, celebrating with family, or ordering delivery to the office, we've got a table
+        (or a box) for you.
+      </p>
+    </div>
+  </div>
+
+  <div id="site-footer"></div>
+
+  <script src="/site/js/translations.js"></script>
+  <script src="/site/js/site-api.js"></script>
+  <script src="/site/js/index.js"></script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DokanPro Docs — Database Schema</title>
+<link rel="stylesheet" href="assets/docs.css" />
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Dokan<span>Pro</span></span>
+  <span class="tag">Documentation</span>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Getting Started</a>
+    <div class="group-label">Architecture</div>
+    <a href="architecture.html">System Architecture</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="database.html" class="active">Database Schema</a>
+    <div class="group-label">Reference</div>
+    <a href="api-reference.html">API Reference</a>
+    <a href="roles-permissions.html">Roles &amp; Permissions</a>
+    <a href="payments.html">Payments</a>
+    <div class="group-label">Operations</div>
+    <a href="security-hardening.html">Security &amp; Hardening</a>
+    <a href="deployment.html">Deployment</a>
+    <a href="design-system.html">Design System</a>
+    <div class="group-label">Project</div>
+    <a href="roadmap.html">Roadmap &amp; Status</a>
+  </nav>
+  <main>
+    <h1>Database Schema</h1>
+    <p class="lede">PostgreSQL, SQLAlchemy 2.0 models, Alembic migrations. ~30 tables, almost all tenant-scoped.</p>
+
+    <h2>Core models by area</h2>
+
+    <h3>Tenancy &amp; identity</h3>
+    <table>
+      <tr><th>Model</th><th>Notes</th></tr>
+      <tr><td><code>Business</code></td><td>The tenant root. Not itself tenant-scoped — it <em>is</em> the tenant.</td></tr>
+      <tr><td><code>Store</code></td><td>A physical location under a business. Most tenants have exactly one.</td></tr>
+      <tr><td><code>User</code></td><td>Staff account. <code>email</code> unique per-business, not globally.</td></tr>
+      <tr><td><code>Customer</code></td><td>Diner account. Can be a login-capable account or a staff-entered CRM record with no login (<code>password_hash</code> null).</td></tr>
+    </table>
+
+    <h3>Catalog &amp; inventory</h3>
+    <table>
+      <tr><td><code>Product</code>, <code>Category</code>, <code>Brand</code>, <code>Unit</code></td><td>Catalog. Products carry both retail fields (SKU, cost, tax rate) and restaurant/menu fields (description, allergens, calories, <code>is_available_online</code>).</td></tr>
+      <tr><td><code>Inventory</code></td><td>Current stock per product per store.</td></tr>
+      <tr><td><code>StockMovement</code></td><td>Full audit ledger of every stock change — sale, purchase, adjustment, transfer, return — with reason and reference.</td></tr>
+    </table>
+
+    <h3>Orders &amp; sales</h3>
+    <table>
+      <tr><td><code>Order</code>, <code>OrderItem</code></td><td>Covers both in-store POS sales and online orders. <code>fulfillment_type</code> null = in-store; set = pickup/delivery/dine-in, with its own <code>fulfillment_status</code> lifecycle (pending → confirmed → preparing → ready → completed).</td></tr>
+      <tr><td><code>Refund</code>, <code>RefundItem</code></td><td>Item-level returns — restocks exactly what's returned, computes the amount from the order's own recorded prices, never a client-supplied number.</td></tr>
+      <tr><td><code>Discount</code></td><td>Percentage or fixed, with min-subtotal and date-window rules, validated server-side only.</td></tr>
+      <tr><td><code>HeldSale</code></td><td>A parked cart, resumable from any terminal.</td></tr>
+    </table>
+
+    <h3>Restaurant-specific</h3>
+    <table>
+      <tr><td><code>RestaurantTable</code></td><td>Dine-in tables — status (free/occupied/reserved), QR-code ordering target.</td></tr>
+      <tr><td><code>Reservation</code></td><td>Table bookings, guest or logged-in customer.</td></tr>
+      <tr><td><code>Review</code></td><td>One per (product, customer) — enforced by a unique constraint, gated to customers who actually ordered the item.</td></tr>
+      <tr><td><code>NewsletterSubscriber</code></td><td>Email opt-in with an unsubscribe token (globally unique — a capability token, not tenant data).</td></tr>
+      <tr><td><code>NotificationLog</code></td><td>Every email attempted, with real delivery status once Resend is configured.</td></tr>
+    </table>
+
+    <h3>Purchasing &amp; finance</h3>
+    <table>
+      <tr><td><code>Supplier</code></td><td>Vendor records.</td></tr>
+      <tr><td><code>Purchase</code>, <code>PurchaseItem</code></td><td>Stock received — increments inventory, logs a <code>StockMovement</code>.</td></tr>
+      <tr><td><code>PurchaseReturn</code>, <code>PurchaseReturnItem</code></td><td>Returns to a supplier.</td></tr>
+      <tr><td><code>PurchasePayment</code></td><td>Accounts-payable tracking — partial/full payments against a purchase invoice.</td></tr>
+      <tr><td><code>StockTransfer</code></td><td>Moves stock between two stores of the same business.</td></tr>
+      <tr><td><code>Expense</code></td><td>Business expenses, feeds the profit/loss report.</td></tr>
+    </table>
+
+    <h3>Audit</h3>
+    <table>
+      <tr><td><code>AuditLog</code></td><td>Who did what, when — logged centrally through one shared <code>log_action()</code> helper called from every mutating endpoint.</td></tr>
+    </table>
+
+    <h2>The tenancy pattern</h2>
+    <p>Every table above (except <code>Business</code> itself) carries a <code>business_id</code> foreign key, added by the multi-tenancy migration. See <a href="multi-tenancy.html">Multi-Tenancy</a> for how it's enforced at query time.</p>
+
+    <h2>Migration history</h2>
+    <table>
+      <tr><th>Revision</th><th>What it did</th></tr>
+      <tr><td><code>472cc6b45294</code></td><td>Initial schema + Phase 1 restaurant fields</td></tr>
+      <tr><td><code>513462244ff7</code></td><td>Waiter/chef roles, loyalty point redemption</td></tr>
+      <tr><td><code>88239fbc4dd9</code></td><td>Reviews + newsletter tables</td></tr>
+      <tr><td><code>2a5a2362287c</code></td><td>Dine-in fulfillment type, tables, notifications foundation</td></tr>
+      <tr><td><code>749b21e66ad2</code></td><td><strong>Multi-tenancy foundation</strong> — <code>Business</code> table, <code>business_id</code> on every tenant table, composite unique constraints, retired the old singleton settings table</td></tr>
+      <tr><td><code>59d7a568862f</code></td><td>Stripe Connect + Subscriptions fields on <code>Business</code></td></tr>
+    </table>
+
+    <h3>Recurring migration gotchas worth knowing</h3>
+    <ul>
+      <li><code>ALTER TYPE ... ADD VALUE</code> on a Postgres enum can't run inside a transaction — needs <code>with op.get_context().autocommit_block():</code>.</li>
+      <li><code>sa.Enum(...)</code> used via <code>op.add_column</code> doesn't auto-create the type the way <code>op.create_table</code> does — needs an explicit <code>.create(op.get_bind(), checkfirst=True)</code> first.</li>
+      <li>Adding a <code>NOT NULL</code> column to a non-empty table needs the nullable-then-backfill-then-<code>SET NOT NULL</code> two-step (or a <code>server_default</code> for simple constants like booleans).</li>
+    </ul>
+
+    <footer class="page-footer">Next: <a href="api-reference.html">API Reference</a>.</footer>
+  </main>
+</div>
+</body>
+</html>

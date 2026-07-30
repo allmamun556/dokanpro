@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DokanPro Docs — Deployment</title>
+<link rel="stylesheet" href="assets/docs.css" />
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Dokan<span>Pro</span></span>
+  <span class="tag">Documentation</span>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Getting Started</a>
+    <div class="group-label">Architecture</div>
+    <a href="architecture.html">System Architecture</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="database.html">Database Schema</a>
+    <div class="group-label">Reference</div>
+    <a href="api-reference.html">API Reference</a>
+    <a href="roles-permissions.html">Roles &amp; Permissions</a>
+    <a href="payments.html">Payments</a>
+    <div class="group-label">Operations</div>
+    <a href="security-hardening.html">Security &amp; Hardening</a>
+    <a href="deployment.html" class="active">Deployment</a>
+    <a href="design-system.html">Design System</a>
+    <div class="group-label">Project</div>
+    <a href="roadmap.html">Roadmap &amp; Status</a>
+  </nav>
+  <main>
+    <h1>Deployment</h1>
+    <p class="lede">Everything so far has run locally via Docker Compose. This page covers what changes to run it somewhere real.</p>
+
+    <div class="card warn">
+      <h4>Not yet exercised</h4>
+      <p>Nothing has actually been deployed outside a local machine yet. The recommendation below is a considered plan, not a battle-tested path — the jump from <code>docker compose up</code> to a real host usually surfaces at least one surprise.</p>
+    </div>
+
+    <h2>Recommended path — no credit card required</h2>
+    <p><strong>Render</strong> (web service, from the existing <code>backend/Dockerfile</code>) + <strong>Neon</strong> (managed Postgres) both have genuine no-card-required free tiers. Since the backend serves the frontend itself, one Render service covers everything — no separate static site host needed.</p>
+
+    <h3>Environment variables to set</h3>
+    <table>
+      <tr><th>Variable</th><th>Notes</th></tr>
+      <tr><td><code>DATABASE_URL</code></td><td>Neon's connection string, with the SQLAlchemy driver suffix (<code>postgresql+psycopg2://...</code>) and <code>?sslmode=require</code> appended</td></tr>
+      <tr><td><code>SECRET_KEY</code></td><td>Generate a real random secret — don't ship the default dev value</td></tr>
+      <tr><td><code>STRIPE_SECRET_KEY</code></td><td>Live key when ready for real payments; test key otherwise</td></tr>
+      <tr><td><code>STRIPE_WEBHOOK_SECRET</code></td><td>From a webhook endpoint registered in the Stripe Dashboard pointing at <code>/api/public/webhooks/stripe</code></td></tr>
+      <tr><td><code>STRIPE_CONNECT_WEBHOOK_SECRET</code></td><td>From a <em>separate</em> webhook registered with "Listen to: Events on connected accounts," pointing at <code>/api/public/webhooks/stripe-connect</code> — see <a href="payments.html">Payments</a></td></tr>
+      <tr><td><code>STRIPE_SUBSCRIPTION_PRICE_ID</code></td><td>The subscription Product/Price from the Stripe Dashboard</td></tr>
+      <tr><td><code>RESEND_API_KEY</code>, <code>RESEND_FROM_EMAIL</code></td><td>For real transactional email — degrades gracefully (logs only) if unset</td></tr>
+      <tr><td><code>PUBLIC_SITE_URL</code></td><td>The real public URL, used to build Stripe redirect URLs correctly</td></tr>
+    </table>
+
+    <h3>Start command</h3>
+    <p>Must bind to Render's <code>$PORT</code>, not the hardcoded <code>8000</code> in the Dockerfile:</p>
+    <pre><code>sh -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT"</code></pre>
+
+    <div class="card warn">
+      <h4>Do the migration work before pointing this at real data</h4>
+      <p>Render's free web service is disposable/ephemeral by nature, but Neon's database is not. Hand-patching schema changes against a live production database is not a sustainable practice — get comfortable with the Alembic workflow (see <a href="getting-started.html">Getting Started</a>) before real tenants' data depends on it.</p>
+    </div>
+
+    <p>Render's free tier spins the service down after 15 minutes of inactivity (~1 minute cold start on the next request) — fine for a small shop's actual traffic pattern, not for something needing instant always-on access.</p>
+
+    <h2>Backups</h2>
+    <p>See <a href="security-hardening.html">Security &amp; Hardening</a> for the manual <code>backup_db.sh</code>/<code>restore_db.sh</code> scripts. Once on a real managed Postgres host, prefer its built-in automated backups over relying solely on the manual scripts — Neon includes this on its free tier.</p>
+
+    <h2>Stripe webhooks in production</h2>
+    <p>Local development uses <code>stripe listen</code> to forward events to <code>localhost</code>. In production, register two real webhook endpoints in the Stripe Dashboard against the public URL — one normal, one explicitly scoped to Connect events — matching the two endpoints described in <a href="payments.html">Payments</a>.</p>
+
+    <footer class="page-footer">Next: <a href="roadmap.html">Roadmap &amp; Status</a> — what's genuinely ready vs. what still needs attention before real customers depend on this.</footer>
+  </main>
+</div>
+</body>
+</html>

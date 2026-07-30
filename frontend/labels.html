@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Barcode Labels</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Barcode Labels</h1>
+      <button id="print-btn" class="btn btn-primary" disabled onclick="printLabels()">Print Labels</button>
+    </div>
+
+    <input
+      type="text"
+      id="search"
+      class="search-bar"
+      placeholder="Search products by name or SKU..."
+    />
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>SKU</th><th>Name</th><th>Price</th><th>Copies</th></tr>
+        </thead>
+        <tbody id="product-rows"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state" style="display:none;">No products found.</div>
+    </div>
+  </div>
+
+  <div id="print-area"></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/labels.js"></script>
+</body>
+</html>

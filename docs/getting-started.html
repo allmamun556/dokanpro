@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DokanPro Docs — Getting Started</title>
+<link rel="stylesheet" href="assets/docs.css" />
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Dokan<span>Pro</span></span>
+  <span class="tag">Documentation</span>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html" class="active">Getting Started</a>
+    <div class="group-label">Architecture</div>
+    <a href="architecture.html">System Architecture</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="database.html">Database Schema</a>
+    <div class="group-label">Reference</div>
+    <a href="api-reference.html">API Reference</a>
+    <a href="roles-permissions.html">Roles &amp; Permissions</a>
+    <a href="payments.html">Payments</a>
+    <div class="group-label">Operations</div>
+    <a href="security-hardening.html">Security &amp; Hardening</a>
+    <a href="deployment.html">Deployment</a>
+    <a href="design-system.html">Design System</a>
+    <div class="group-label">Project</div>
+    <a href="roadmap.html">Roadmap &amp; Status</a>
+  </nav>
+  <main>
+    <h1>Getting Started</h1>
+    <p class="lede">Everything runs from two Docker Compose services. One command starts the whole system.</p>
+
+    <h2>Run it</h2>
+    <pre><code>cd pos-system
+docker compose up -d</code></pre>
+    <p>The backend container's startup command runs Alembic migrations, seeds demo data (idempotent — safe to run every time), and starts Uvicorn, all automatically:</p>
+    <pre><code>sh -c "alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port 8000"</code></pre>
+
+    <h3>Check it's healthy</h3>
+    <pre><code>docker compose ps
+docker compose logs backend --tail 20</code></pre>
+
+    <h2>Key URLs</h2>
+    <table>
+      <tr><th>Staff app</th><td><code>http://localhost:8000/t/{slug}/</code></td></tr>
+      <tr><th>Customer ordering site</th><td><code>http://localhost:8000/t/{slug}/site/</code></td></tr>
+      <tr><th>New restaurant signup</th><td><code>http://localhost:8000/signup.html</code></td></tr>
+      <tr><th>API docs (Swagger)</th><td><code>http://localhost:8000/docs</code></td></tr>
+      <tr><th>Health check</th><td><code>http://localhost:8000/api/health</code></td></tr>
+    </table>
+    <p>Every URL for a specific tenant is prefixed with <code>/t/{slug}/</code> — see <a href="multi-tenancy.html">Multi-Tenancy</a> for why. The bare <code>/</code> and <code>/site/</code> paths still render but can't log in (no tenant context to resolve).</p>
+
+    <h2>Default seeded tenant</h2>
+    <p>The seed script creates one business, <strong>Bavaria Genuss Restaurant</strong> (slug <code>bavaria-genuss</code>), with three staff accounts and demo products:</p>
+    <table>
+      <tr><th>Email</th><th>Password</th><th>Role</th></tr>
+      <tr><td><code>admin@possystem.dev</code></td><td><code>admin123</code></td><td>Admin</td></tr>
+      <tr><td><code>manager@possystem.dev</code></td><td><code>manager123</code></td><td>Manager</td></tr>
+      <tr><td><code>cashier@possystem.dev</code></td><td><code>cashier123</code></td><td>Cashier</td></tr>
+    </table>
+    <p>Log in at <code>http://localhost:8000/t/bavaria-genuss/</code>.</p>
+
+    <h2>Creating another tenant</h2>
+    <p>Two ways to create a new business on the same deployment:</p>
+    <ul>
+      <li><strong>Self-serve signup</strong> — <code>/signup.html</code>, the real product flow a restaurant owner would use.</li>
+      <li><strong>Management script</strong> — for quick local testing without going through the UI:
+        <pre><code>docker compose exec backend python -m app.create_tenant "Test Cafe" "test-cafe"</code></pre>
+        Defaults to <code>admin@{slug}.example.com</code> / <code>changeme123</code> if you don't pass an email/password.
+      </li>
+    </ul>
+
+    <h2>Making code changes</h2>
+    <p>Frontend files (<code>frontend/</code>) are bind-mounted — edits are live immediately, no rebuild needed.</p>
+    <p>Backend files are baked into the image at build time — after any Python change:</p>
+    <pre><code>docker compose build backend && docker compose up -d backend</code></pre>
+
+    <h3>Generating a migration</h3>
+    <p>Must be run via a bind-mounted container, or the generated file is lost when the ephemeral container exits:</p>
+    <pre><code>docker compose run --rm --user "$(id -u):$(id -g)" \
+  -v "$(pwd)/backend:/app" backend \
+  alembic revision --autogenerate -m "description"</code></pre>
+    <p>Rebuild the image <em>after</em> the migration file exists, never before — the Dockerfile does <code>COPY . .</code> at build time, so a build before generation bakes in an empty <code>alembic/versions/</code>.</p>
+
+    <h2>Stopping</h2>
+    <pre><code>docker compose down        # keeps data
+docker compose down -v     # also wipes the database volume</code></pre>
+
+    <footer class="page-footer">See <a href="deployment.html">Deployment</a> for running this somewhere other than your laptop.</footer>
+  </main>
+</div>
+</body>
+</html>

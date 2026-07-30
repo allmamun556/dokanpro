@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DokanPro Docs — Design System</title>
+<link rel="stylesheet" href="assets/docs.css" />
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Dokan<span>Pro</span></span>
+  <span class="tag">Documentation</span>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Getting Started</a>
+    <div class="group-label">Architecture</div>
+    <a href="architecture.html">System Architecture</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="database.html">Database Schema</a>
+    <div class="group-label">Reference</div>
+    <a href="api-reference.html">API Reference</a>
+    <a href="roles-permissions.html">Roles &amp; Permissions</a>
+    <a href="payments.html">Payments</a>
+    <div class="group-label">Operations</div>
+    <a href="security-hardening.html">Security &amp; Hardening</a>
+    <a href="deployment.html">Deployment</a>
+    <a href="design-system.html" class="active">Design System</a>
+    <div class="group-label">Project</div>
+    <a href="roadmap.html">Roadmap &amp; Status</a>
+  </nav>
+  <main>
+    <h1>Design System — "Warm &amp; Craft"</h1>
+    <p class="lede">A terracotta-and-cream palette chosen to read as hospitality-specific, not generic-SaaS-blue. This documentation site uses the same tokens.</p>
+
+    <h2>Why this direction</h2>
+    <p>The original UI used the default Tailwind blue (<code>#2563eb</code>) that ships unstyled on countless templates — flat white cards, thin gray borders, system font for everything including headline numbers, an unstyled default chart. None of that is broken, but none of it signals "professional paid product" either, which matters commercially for something asking restaurant owners to trust it with their payments. Three directions were sketched (Warm &amp; Craft, Bold Modern SaaS, Dark-first Pro) and this one was chosen.</p>
+
+    <h2>Color tokens</h2>
+    <div class="swatch"><span class="dot" style="background:#c2410c"></span><code>--primary</code> #c2410c</div>
+    <div class="swatch"><span class="dot" style="background:#9a3412"></span><code>--primary-dark</code> #9a3412</div>
+    <div class="swatch"><span class="dot" style="background:#ffedd5"></span><code>--primary-light</code> #ffedd5</div>
+    <div class="swatch"><span class="dot" style="background:#faf3ec"></span><code>--bg</code> #faf3ec</div>
+    <div class="swatch"><span class="dot" style="background:#fffdfb; border:1px solid #ddd"></span><code>--card-bg</code> #fffdfb</div>
+    <div class="swatch"><span class="dot" style="background:#2b2118"></span><code>--text</code> #2b2118</div>
+    <div class="swatch"><span class="dot" style="background:#8a7768"></span><code>--text-muted</code> #8a7768</div>
+    <div class="swatch"><span class="dot" style="background:#ece1d3"></span><code>--border</code> #ece1d3</div>
+    <div class="swatch"><span class="dot" style="background:#241811"></span><code>--navbar-bg</code> #241811</div>
+    <div class="swatch"><span class="dot" style="background:#3d2a1d"></span><code>--navbar-hover</code> #3d2a1d</div>
+    <div class="swatch"><span class="dot" style="background:#c99a3c"></span><code>--accent</code> #c99a3c <span style="color:var(--text-muted)">(customer site secondary accent — CTAs, underlines)</span></div>
+
+    <p>Functional colors (success/warning/danger) kept close to convention so they stay instantly legible — success <code>#15803d</code>, warning <code>#b45309</code> (already warm, fit naturally), danger <code>#dc2626</code>.</p>
+
+    <h2>Typography</h2>
+    <p><strong>Outfit</strong> (Google Fonts, loaded via <code>@import</code>) for display contexts only — page headings, the brand logo, stat-card numbers, cart totals. Everything else (body copy, tables, forms, badges) stays on the system font stack for legibility and information density. Two-tier on purpose: personality where it's most visible, maximum readability where data lives.</p>
+
+    <h2>Where the tokens live</h2>
+    <table>
+      <tr><th>File</th><th>Scope</th></tr>
+      <tr><td><code>frontend/css/style.css</code></td><td>Staff app — defines the base <code>:root</code> tokens</td></tr>
+      <tr><td><code>frontend/site/css/site.css</code></td><td>Customer site — <code>@import</code>s the staff stylesheet, then overrides <code>--primary</code>/<code>--bg</code>/etc. to the same terracotta family (previously an unrelated maroon/gold palette)</td></tr>
+      <tr><td><code>docs/assets/docs.css</code></td><td>This documentation site</td></tr>
+    </table>
+    <p>Because both frontends share one token set via CSS custom properties, a palette change cascades through every shared component (<code>.card</code>, <code>.btn</code>, <code>.navbar</code>, tables, forms) automatically — no need to hand-edit dozens of individual pages.</p>
+
+    <h2>Component patterns</h2>
+    <div class="card">
+      <h4>Cards</h4>
+      <p>Rounded (14px), soft shadow instead of a flat border-only look, warm-white background slightly off from pure white.</p>
+    </div>
+    <div class="card">
+      <h4>Stat cards</h4>
+      <p>A 4px terracotta left-accent bar on every stat card, Outfit font for the number itself.</p>
+    </div>
+    <div class="card">
+      <h4>Charts</h4>
+      <p>Chart.js bars use a terracotta-to-orange gradient fill with rounded tops, warm-toned gridlines instead of default gray.</p>
+    </div>
+    <div class="card">
+      <h4>Navigation</h4>
+      <p>Both navbars (staff app, customer site) use the same near-black warm espresso (<code>#241811</code>), not the generic cool slate they started with.</p>
+    </div>
+
+    <h2>PWA assets</h2>
+    <p>App icons (<code>frontend/site/icons/icon-*.svg</code>), the manifest's <code>theme_color</code>/<code>background_color</code>, and the <code>theme-color</code> meta tag on all 12 customer-site pages were updated to match — so the installed home-screen icon and mobile browser chrome tint correctly too, not just in-page colors.</p>
+
+    <footer class="page-footer">Next: <a href="deployment.html">Deployment</a>.</footer>
+  </main>
+</div>
+</body>
+</html>

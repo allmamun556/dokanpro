@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Stores</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Stores</h1>
+      <button class="btn btn-primary" onclick="openStoreModal()">+ New Store</button>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Address</th><th></th></tr>
+        </thead>
+        <tbody id="store-rows"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state" style="display:none;">No stores yet.</div>
+    </div>
+  </div>
+
+  <div id="store-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <h3 id="modal-title">New Store</h3>
+      <form id="store-form">
+        <input type="hidden" id="st-id" />
+        <label>Name</label>
+        <input type="text" id="st-name" required />
+        <label>Address</label>
+        <input type="text" id="st-address" />
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Save</button>
+          <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeStoreModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/stores.js"></script>
+</body>
+</html>

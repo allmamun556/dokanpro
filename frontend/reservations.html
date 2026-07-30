@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Reservations</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Reservations</h1>
+      <input type="date" id="date-filter" />
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Guest</th>
+            <th>Party</th>
+            <th>Table</th>
+            <th>Status</th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="reservation-rows"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state" style="display:none;">No reservations for this day.</div>
+    </div>
+  </div>
+
+  <div id="res-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <h3>Reservation #<span id="rm-id"></span></h3>
+      <label>Status</label>
+      <select id="rm-status">
+        <option value="requested">Requested</option>
+        <option value="confirmed">Confirmed</option>
+        <option value="seated">Seated</option>
+        <option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+        <option value="no_show">No-show</option>
+      </select>
+      <label>Table</label>
+      <select id="rm-table"></select>
+      <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="saveReservation()">Save</button>
+      <button class="btn btn-secondary btn-block" style="margin-top:8px;" onclick="closeReservationModal()">Close</button>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/reservations.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Reviews</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Customer Reviews</h1>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-filter="all" onclick="setFilter('all')">All</div>
+      <div class="tab" data-filter="unanswered" onclick="setFilter('unanswered')">Unanswered</div>
+    </div>
+
+    <div id="review-list"></div>
+    <div id="empty-state" class="empty-state" style="display:none;">No reviews yet.</div>
+  </div>
+
+  <div id="reply-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <h3>Reply to Review</h3>
+      <textarea id="reply-text" rows="4" placeholder="Thank you for your feedback..."></textarea>
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="submitReply()">Send Reply</button>
+        <button class="btn btn-secondary" style="flex:1;" onclick="closeReplyModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/reviews.js"></script>
+</body>
+</html>

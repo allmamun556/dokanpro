@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DokanPro Docs — Multi-Tenancy</title>
+<link rel="stylesheet" href="assets/docs.css" />
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Dokan<span>Pro</span></span>
+  <span class="tag">Documentation</span>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Getting Started</a>
+    <div class="group-label">Architecture</div>
+    <a href="architecture.html">System Architecture</a>
+    <a href="multi-tenancy.html" class="active">Multi-Tenancy</a>
+    <a href="database.html">Database Schema</a>
+    <div class="group-label">Reference</div>
+    <a href="api-reference.html">API Reference</a>
+    <a href="roles-permissions.html">Roles &amp; Permissions</a>
+    <a href="payments.html">Payments</a>
+    <div class="group-label">Operations</div>
+    <a href="security-hardening.html">Security &amp; Hardening</a>
+    <a href="deployment.html">Deployment</a>
+    <a href="design-system.html">Design System</a>
+    <div class="group-label">Project</div>
+    <a href="roadmap.html">Roadmap &amp; Status</a>
+  </nav>
+  <main>
+    <h1>Multi-Tenancy</h1>
+    <p class="lede">One deployment, many restaurants, each provably unable to see another's data. Shared database, row-level isolation.</p>
+
+    <div class="card info">
+      <h4>The core mechanism</h4>
+      <p>Every tenant-owned table has a <code>business_id</code> column. A global SQLAlchemy query filter — installed per-request, not opted into per-query — automatically scopes every ORM <code>SELECT</code> to the current tenant. No individual route's read logic had to be rewritten.</p>
+    </div>
+
+    <h2>The <code>Business</code> model</h2>
+    <p>The tenant root. Every other table's <code>business_id</code> points here. Also holds what used to be a separate singleton settings table — currency symbol, VAT rate, receipt footer, address — since a business's own settings are naturally per-tenant, not global.</p>
+
+    <h2>How a request gets scoped</h2>
+    <p><code>TenantMiddleware</code> (Starlette middleware, runs before any FastAPI dependency) resolves <code>business_id</code> for every request, in priority order:</p>
+    <ol>
+      <li><strong>JWT claim</strong> — if the request carries a valid staff or customer token, <code>business_id</code> is read directly from it (added to the token at login/signup). Cryptographically tied to the account, can't be spoofed by a client-supplied header.</li>
+      <li><strong><code>/t/{slug}/</code> path prefix</strong> — for anonymous requests to a tenant-prefixed page.</li>
+      <li><strong><code>X-Business-Slug</code> header</strong> — for anonymous API calls made from a <code>/t/{slug}/</code> page (the API itself lives at <code>/api/...</code>, not under <code>/t/{slug}/</code>, so the frontend's shared fetch helper reads the slug out of its own page URL and attaches it as a header).</li>
+    </ol>
+    <p>The resolved <code>business_id</code> lands on <code>request.state.business_id</code>, which <code>get_db()</code> reads to install the filter on that request's database session:</p>
+    <pre><code>def get_db(request: Request):
+    db = get_scoped_session(request.state.business_id)
+    try:
+        yield db
+    finally:
+        db.close()</code></pre>
+    <p><code>get_scoped_session()</code> attaches a <code>with_loader_criteria</code> event listener scoped to that one session instance — every SELECT for any model in the <code>TENANT_SCOPED_MODELS</code> registry gets <code>WHERE business_id = :tenant_id</code> appended automatically.</p>
+
+    <div class="card warn">
+      <h4>A real bug this caught</h4>
+      <p>The filter's lambda originally captured <code>tenant_id</code> via a <code>tid=tenant_id</code> default-argument trick (to dodge Python's classic closure late-binding bug). That accidentally broke SQLAlchemy's statement-cache key tracking, which inspects genuine lexical closures, not default arguments — the <em>first</em> tenant to log in got its filter compiled and cached, and every other tenant's session silently reused that cached plan. Caught by testing alternating logins between two tenants, not just one in isolation. Fixed by using a real closure instead of the defensive default-arg pattern.</p>
+    </div>
+
+    <h2>Writes still need explicit stamping</h2>
+    <p>The filter only protects reads. Every <code>Model(...)</code> construction for a tenant-owned row needs <code>business_id=...</code> set explicitly. Most creation endpoints get this for free — they already take <code>current_user</code>/<code>current_customer</code> as a dependency, and <code>business_id</code> is a real column on those objects now. Only genuinely anonymous writes (guest checkout, guest reservation, newsletter signup) read it from <code>request.state.business_id</code> instead.</p>
+
+    <h2>Anonymous public endpoints need an explicit guard</h2>
+    <div class="card warn">
+      <h4>A real gap this caught</h4>
+      <p>Without a resolved <code>business_id</code>, <code>get_db()</code> installs <em>no filter at all</em> — an unscoped query returns every tenant's rows mixed together. Discovered live: hitting <code>/api/public/menu</code> with no <code>X-Business-Slug</code> header returned Bavaria Genuss's full menu to anyone. Fixed with a shared <code>require_tenant</code> dependency applied to every anonymous public read endpoint (menu, discounts, tables, recommendations, reviews) — rejects with 400 instead of silently running unscoped. The Stripe webhook endpoint is a deliberate, reviewed exception: it must look up an order by ID with no tenant context, since Stripe itself doesn't know or send tenant info.</p>
+    </div>
+
+    <h2>WebSockets</h2>
+    <p>No <code>Request</code> object exists in a WebSocket handler, so it can't use <code>get_db()</code> as a dependency. It decodes the JWT itself and calls <code>get_scoped_session(business_id)</code> directly. Each tracked connection is tagged with its <code>business_id</code>, and broadcasts filter recipients to matching connections only.</p>
+
+    <h2>URL structure</h2>
+    <table>
+      <tr><td><code>/t/{slug}/</code></td><td>Staff app entry point (login, then all staff pages)</td></tr>
+      <tr><td><code>/t/{slug}/site/</code></td><td>Customer ordering site for that tenant</td></tr>
+      <tr><td><code>/signup.html</code></td><td>Self-serve tenant creation (no slug yet — this is what assigns one)</td></tr>
+      <tr><td><code>/</code>, <code>/site/</code></td><td>Unprefixed fallback — renders but can't authenticate (no tenant to resolve)</td></tr>
+    </table>
+    <p>Static assets (CSS/JS/icons) stay unprefixed and shared — identical code across every tenant, only data differs. Page navigation uses relative <code>href</code>s (<code>menu.html</code>, not <code>/site/menu.html</code>) so the browser naturally preserves whichever prefix the current page is under, with zero JS required.</p>
+
+    <h3>Reserved slugs</h3>
+    <p>A small blocklist (<code>api</code>, <code>t</code>, <code>css</code>, <code>js</code>, <code>uploads</code>, <code>site</code>, <code>admin</code>, <code>www</code>, <code>static</code>) is rejected at signup — these don't actually collide with any route (tenant pages live under a distinct <code>/t/</code> namespace) but would be confusing or spoofable if allowed.</p>
+
+    <h2>Creating a tenant</h2>
+    <p>Both the self-serve <code>/signup.html</code> flow and the <code>create_tenant.py</code> CLI script call the same shared <code>tenant_service.create_business()</code> — one implementation of "what a brand-new business looks like": a <code>Business</code> row, a default <code>Store</code>, and a first admin <code>User</code>.</p>
+
+    <h2>Verifying isolation</h2>
+    <p>The test that actually proves isolation (not just that the UI hides things): take a valid JWT from Tenant B, request Tenant A's order by ID. The response is <strong>404, not 403</strong> — the row is invisible to the query, not merely permission-blocked. That distinction matters: a 403 means the app checked and denied; a 404 from an unscoped-but-permission-checked query would mean the isolation depends entirely on that one check never being missed anywhere. A 404 from the global filter means the row doesn't exist as far as that session can see, structurally, regardless of which endpoint asks.</p>
+
+    <footer class="page-footer">Next: <a href="database.html">Database Schema</a>.</footer>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Bavaria Genuss Restaurant</title>
+  <link rel="stylesheet" href="/site/css/site.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#c2410c" />
+  <link rel="apple-touch-icon" href="/site/icons/icon-192.svg" />
+</head>
+<body>
+  <div id="site-nav"></div>
+
+  <div class="site-page" style="max-width:420px;">
+    <div class="card">
+      <h1 data-i18n="login.title">Login</h1>
+      <div id="error-msg" class="error-msg" style="display:none;"></div>
+      <form id="login-form">
+        <label data-i18n="login.email">Email</label>
+        <input type="email" id="email" required />
+        <label data-i18n="login.password">Password</label>
+        <input type="password" id="password" required />
+        <button type="submit" class="btn btn-accent btn-block" data-i18n="login.submit" style="margin-top:16px;">Sign in</button>
+      </form>
+      <p style="text-align:center; margin-top:16px; font-size:14px;">
+        <span data-i18n="login.noAccount">No account yet?</span> <a href="register.html" data-i18n="login.register">Register</a>
+      </p>
+    </div>
+  </div>
+
+  <div id="site-footer"></div>
+
+  <script src="/site/js/translations.js"></script>
+  <script src="/site/js/site-api.js"></script>
+  <script>
+    renderSiteNav("login.html");
+    renderSiteFooter();
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const errorEl = document.getElementById("error-msg");
+      errorEl.style.display = "none";
+
+      try {
+        const form = new URLSearchParams();
+        form.set("username", email);
+        form.set("password", password);
+        const headers = { "Content-Type": "application/x-www-form-urlencoded" };
+        const slug = getBusinessSlug();
+        if (slug) headers["X-Business-Slug"] = slug;
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: "POST",
+          headers,
+          body: form,
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.detail || "Login failed");
+        }
+        const data = await res.json();
+        setToken(data.access_token);
+        window.location.href = "account.html";
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.style.display = "block";
+      }
+    });
+  </script>
+</body>
+</html>

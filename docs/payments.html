@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DokanPro Docs — Payments</title>
+<link rel="stylesheet" href="assets/docs.css" />
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Dokan<span>Pro</span></span>
+  <span class="tag">Documentation</span>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Getting Started</a>
+    <div class="group-label">Architecture</div>
+    <a href="architecture.html">System Architecture</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="database.html">Database Schema</a>
+    <div class="group-label">Reference</div>
+    <a href="api-reference.html">API Reference</a>
+    <a href="roles-permissions.html">Roles &amp; Permissions</a>
+    <a href="payments.html" class="active">Payments</a>
+    <div class="group-label">Operations</div>
+    <a href="security-hardening.html">Security &amp; Hardening</a>
+    <a href="deployment.html">Deployment</a>
+    <a href="design-system.html">Design System</a>
+    <div class="group-label">Project</div>
+    <a href="roadmap.html">Roadmap &amp; Status</a>
+  </nav>
+  <main>
+    <h1>Payments</h1>
+    <p class="lede">Two completely separate money flows, on two separate Stripe accounts. Don't confuse them.</p>
+
+    <div class="grid-cards">
+      <div class="card info">
+        <h4>Diner → Restaurant</h4>
+        <p>Stripe Connect (Standard accounts). A diner's payment goes straight to <em>that restaurant's</em> Stripe balance. The platform never touches this money.</p>
+      </div>
+      <div class="card info">
+        <h4>Restaurant → Platform</h4>
+        <p>Stripe Subscriptions, on the platform's own Stripe account. Flat monthly fee, unrelated to Connect. This is your revenue.</p>
+      </div>
+    </div>
+
+    <h2>Stripe Connect — diner payments</h2>
+    <p>Why Standard accounts specifically: least platform liability. The connected account is genuinely the restaurant's own Stripe account — the platform can create it and generate onboarding links, but <strong>cannot</strong> fill in the restaurant's business details, bank account, or accept their Terms of Service on their behalf. That's a deliberate Stripe security boundary (confirmed directly: the platform's API key gets a <code>PermissionError</code> if it tries), and it's exactly why Standard has the lowest support/compliance burden of Stripe's Connect account types.</p>
+
+    <h3>Onboarding flow</h3>
+    <ol>
+      <li>Staff clicks "Connect Stripe" in Settings → <code>POST /api/settings/stripe/connect</code>.</li>
+      <li>Backend creates a Standard connected account (<code>stripe.Account.create(type="standard", ...)</code>) if one doesn't exist yet, saves <code>stripe_account_id</code> on the <code>Business</code> row.</li>
+      <li>Creates a single-use Account Link and returns its URL — Stripe's current recommended flow for Standard accounts.</li>
+      <li>Restaurant owner completes real KYC on Stripe's hosted page (business details, bank account, ToS).</li>
+      <li>Redirected back to <code>/t/{slug}/settings.html?stripe_return=1</code>, which re-fetches status — <code>GET /api/settings/stripe/connect/status</code> calls <code>stripe.Account.retrieve()</code> and updates <code>stripe_charges_enabled</code>.</li>
+    </ol>
+
+    <div class="card warn">
+      <h4>Checkout is gated on <code>stripe_charges_enabled</code></h4>
+      <p>If a business hasn't finished onboarding, checkout returns a clean 400 ("This restaurant hasn't finished setting up online payments yet") instead of silently accepting payment into the platform's own account. This is the single most important safety property of the whole integration — verified directly, before and after connecting.</p>
+    </div>
+
+    <h3>How the charge actually routes</h3>
+    <p>The Checkout Session is created with <code>stripe_account=business.stripe_account_id</code> — this single parameter is the entire mechanism. Making the API call "as" the connected account means Stripe creates the session (and the resulting charge) directly on their books, not the platform's. No application fee, no fund transfer step — confirmed by retrieving the created session and finding it's only visible with that <code>stripe_account</code> header, i.e. it genuinely lives on their account.</p>
+
+    <h3>Webhooks — two separate endpoints</h3>
+    <div class="card warn">
+      <h4>This is not optional plumbing</h4>
+      <p>Stripe does <strong>not</strong> deliver connected-account events to a platform's normal webhook endpoint. A separate endpoint must be registered specifically as a "Connect" webhook (<code>connect: true</code> in the Dashboard, or <code>stripe listen --forward-connect-to</code> locally), with its own signing secret. Confirmed against current Stripe docs before building this, not assumed.</p>
+    </div>
+    <table>
+      <tr><th>Endpoint</th><th>Secret</th><th>Handles</th></tr>
+      <tr><td><code>/api/public/webhooks/stripe-connect</code></td><td><code>STRIPE_CONNECT_WEBHOOK_SECRET</code></td><td>Diner order payment events — <code>checkout.session.completed</code> / <code>.expired</code>, from any connected account</td></tr>
+      <tr><td><code>/api/public/webhooks/stripe</code></td><td><code>STRIPE_WEBHOOK_SECRET</code></td><td>Platform-side subscription events</td></tr>
+    </table>
+    <p>Order lookup on the connect webhook works identically regardless of which connected account the event came from — by <code>metadata.order_id</code>, set at session creation.</p>
+
+    <h2>Stripe Subscriptions — platform billing</h2>
+    <p>A business subscribes from Settings → <code>POST /api/billing/subscribe</code> creates/reuses a platform-side <code>stripe.Customer</code> for that business and a Checkout Session in <code>mode="subscription"</code> — <strong>no <code>stripe_account</code> parameter</strong>, this runs entirely on the platform's own account.</p>
+    <p>The webhook (<code>/api/public/webhooks/stripe</code>) handles:</p>
+    <ul>
+      <li><code>checkout.session.completed</code> (subscription mode) → saves <code>stripe_customer_id</code> / <code>stripe_subscription_id</code>, sets <code>subscription_status = "active"</code></li>
+      <li><code>customer.subscription.updated</code> / <code>.deleted</code> → updates <code>subscription_status</code> from the event's own status string (stored verbatim — <code>active</code>, <code>past_due</code>, <code>canceled</code>, etc. — rather than a parallel local enum that could drift out of sync with Stripe's own model)</li>
+    </ul>
+
+    <div class="card done">
+      <h4>Deliberately not enforced yet</h4>
+      <p>Subscription status is tracked and visible, but nothing currently blocks access for a lapsed or missing subscription — a product decision, not an oversight. See <a href="roadmap.html">Roadmap</a>.</p>
+    </div>
+
+    <h2>Configuration</h2>
+    <table>
+      <tr><th>Variable</th><th>Purpose</th></tr>
+      <tr><td><code>STRIPE_SECRET_KEY</code></td><td>Platform's own Stripe secret key — used for both Connect orchestration and subscription billing</td></tr>
+      <tr><td><code>STRIPE_WEBHOOK_SECRET</code></td><td>Platform webhook signing secret (subscription events)</td></tr>
+      <tr><td><code>STRIPE_CONNECT_WEBHOOK_SECRET</code></td><td>Connect webhook signing secret (diner order payment events)</td></tr>
+      <tr><td><code>STRIPE_SUBSCRIPTION_PRICE_ID</code></td><td>The Product/Price in the platform's Stripe Dashboard representing the subscription plan — required for <code>/api/billing/subscribe</code> to work; returns a clean 503 if unset</td></tr>
+      <tr><td><code>PUBLIC_SITE_URL</code></td><td>Used to build Stripe redirect URLs (tenant-prefixed — a real bug fixed during this build: they used to point at the unprefixed site)</td></tr>
+    </table>
+
+    <h2>Local testing</h2>
+    <p>Two things Stripe's hosted UI actively resists in headless browser automation, as a legitimate anti-fraud measure — both worked around the same way, by verifying the underlying mechanism via the Stripe API/CLI directly instead of fighting the UI:</p>
+    <ul>
+      <li><strong>Checkout page payment completion</strong> — verified via <code>stripe trigger checkout.session.completed --override checkout_session:metadata.order_id=N</code> (with <code>--stripe-account</code> for the connect webhook), which fires a real signed event without needing a completed card form.</li>
+      <li><strong>Connect onboarding KYC</strong> — verified at the API level (account creation, account link generation, the charges-enabled gate, the actual charge routing) rather than pushing a test account through the full hosted onboarding form.</li>
+    </ul>
+    <pre><code># forward both webhook types locally
+stripe listen \
+  --forward-to localhost:8000/api/public/webhooks/stripe \
+  --forward-connect-to localhost:8000/api/public/webhooks/stripe-connect</code></pre>
+
+    <footer class="page-footer">Next: <a href="security-hardening.html">Security &amp; Hardening</a>.</footer>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DokanPro Docs — Roles &amp; Permissions</title>
+<link rel="stylesheet" href="assets/docs.css" />
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Dokan<span>Pro</span></span>
+  <span class="tag">Documentation</span>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Getting Started</a>
+    <div class="group-label">Architecture</div>
+    <a href="architecture.html">System Architecture</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="database.html">Database Schema</a>
+    <div class="group-label">Reference</div>
+    <a href="api-reference.html">API Reference</a>
+    <a href="roles-permissions.html" class="active">Roles &amp; Permissions</a>
+    <a href="payments.html">Payments</a>
+    <div class="group-label">Operations</div>
+    <a href="security-hardening.html">Security &amp; Hardening</a>
+    <a href="deployment.html">Deployment</a>
+    <a href="design-system.html">Design System</a>
+    <div class="group-label">Project</div>
+    <a href="roadmap.html">Roadmap &amp; Status</a>
+  </nav>
+  <main>
+    <h1>Roles &amp; Permissions</h1>
+    <p class="lede">Five roles, seventeen fine-grained permission keys, per-user overrides. Enforced server-side on every mutating endpoint — the frontend hiding a nav link is a courtesy, not the security boundary.</p>
+
+    <h2>Roles</h2>
+    <table>
+      <tr><th>Role</th><th>Typical user</th><th>Default access</th></tr>
+      <tr><td><code>admin</code></td><td>Owner</td><td>Everything</td></tr>
+      <tr><td><code>manager</code></td><td>Shift lead</td><td>Everything except <code>users.manage</code> and <code>settings.manage</code></td></tr>
+      <tr><td><code>cashier</code></td><td>Front counter</td><td><code>orders.fulfill</code> only — checkout access comes from a role check, not a permission key (see below)</td></tr>
+      <tr><td><code>waiter</code></td><td>Floor staff</td><td><code>orders.fulfill</code> + <code>tables.manage</code></td></tr>
+      <tr><td><code>chef</code></td><td>Kitchen</td><td><code>orders.fulfill</code> only — the online-order queue, nothing else</td></tr>
+    </table>
+
+    <h2>Permission keys</h2>
+    <table>
+      <tr><th>Key</th><th>Grants</th></tr>
+      <tr><td><code>products.manage</code></td><td>Create/edit/deactivate products, categories, brands, units</td></tr>
+      <tr><td><code>inventory.adjust</code></td><td>Manual stock quantity adjustments</td></tr>
+      <tr><td><code>discounts.manage</code></td><td>Create/edit discount codes</td></tr>
+      <tr><td><code>customers.manage</code></td><td>Edit customer details and loyalty points</td></tr>
+      <tr><td><code>suppliers.manage</code></td><td>Create/edit suppliers</td></tr>
+      <tr><td><code>purchases.manage</code></td><td>Record purchases, purchase returns, supplier payments</td></tr>
+      <tr><td><code>transfers.manage</code></td><td>Move stock between stores</td></tr>
+      <tr><td><code>expenses.manage</code></td><td>Record/delete expenses</td></tr>
+      <tr><td><code>stores.manage</code></td><td>Create/edit store locations</td></tr>
+      <tr><td><code>orders.refund</code></td><td>Process returns/refunds</td></tr>
+      <tr><td><code>reports.profit</code></td><td>View profit/loss figures and dashboard profit stats</td></tr>
+      <tr><td><code>users.manage</code></td><td>Create/edit staff accounts</td></tr>
+      <tr><td><code>settings.manage</code></td><td>Business-wide settings, Stripe Connect/billing</td></tr>
+      <tr><td><code>orders.fulfill</code></td><td>View/update online pickup/delivery order status</td></tr>
+      <tr><td><code>reservations.manage</code></td><td>Confirm/seat/manage table reservations</td></tr>
+      <tr><td><code>reviews.manage</code></td><td>Reply to customer reviews</td></tr>
+      <tr><td><code>tables.manage</code></td><td>Table status, QR codes, starting dine-in orders</td></tr>
+    </table>
+
+    <h2>How it's enforced</h2>
+    <pre><code>def has_permission(user: User, key: str) -> bool:
+    overrides = user.permission_overrides or {}
+    if key in overrides:
+        return bool(overrides[key])
+    return key in ROLE_DEFAULTS.get(user.role, set())</code></pre>
+    <p>Per-user <code>permission_overrides</code> (a JSON column) take priority over the role default — an admin can grant or revoke any individual key for any individual user without changing their role. Routes declare a requirement via a dependency:</p>
+    <pre><code>@router.post("/refund", dependencies=[Depends(require_permission("orders.refund"))])</code></pre>
+
+    <h2>Frontend nav mirrors this, doesn't replace it</h2>
+    <p>The staff app's grouped dropdown navigation (Sales / Inventory / Customers / Admin) filters every item by the same permission/role check before rendering — a cashier never even sees a "Users" link. But that's UX, not security: the actual API endpoint checks the permission independently on every request, regardless of what the frontend chose to show.</p>
+
+    <h2>Two entirely separate auth systems</h2>
+    <p>Staff permissions have no bearing on the customer-facing site — a logged-in customer's JWT carries <code>type: "customer"</code>, not a role, and customer-facing endpoints just check "is this a valid customer" or "does this customer own this order/reservation," never a permission key. See <a href="api-reference.html">API Reference</a>.</p>
+
+    <footer class="page-footer">Next: <a href="payments.html">Payments</a>.</footer>
+  </main>
+</div>
+</body>
+</html>

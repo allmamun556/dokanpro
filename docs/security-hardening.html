@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DokanPro Docs — Security &amp; Hardening</title>
+<link rel="stylesheet" href="assets/docs.css" />
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Dokan<span>Pro</span></span>
+  <span class="tag">Documentation</span>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Getting Started</a>
+    <div class="group-label">Architecture</div>
+    <a href="architecture.html">System Architecture</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="database.html">Database Schema</a>
+    <div class="group-label">Reference</div>
+    <a href="api-reference.html">API Reference</a>
+    <a href="roles-permissions.html">Roles &amp; Permissions</a>
+    <a href="payments.html">Payments</a>
+    <div class="group-label">Operations</div>
+    <a href="security-hardening.html" class="active">Security &amp; Hardening</a>
+    <a href="deployment.html">Deployment</a>
+    <a href="design-system.html">Design System</a>
+    <div class="group-label">Project</div>
+    <a href="roadmap.html">Roadmap &amp; Status</a>
+  </nav>
+  <main>
+    <h1>Security &amp; Hardening</h1>
+    <p class="lede">Rate limiting, input validation, and backups — the difference between "works when it's just us testing" and "safe with strangers' businesses depending on it."</p>
+
+    <h2>Rate limiting</h2>
+    <p><a href="https://pypi.org/project/slowapi/">slowapi</a>, in-memory backend — correct for this single-process deployment, no Redis needed. A shared <code>Limiter</code> keyed by client IP, registered once in <code>main.py</code>, with a custom 429 handler matching the app's standard <code>{"detail": "..."}</code> error shape.</p>
+    <table>
+      <tr><th>Endpoint</th><th>Limit</th><th>Why</th></tr>
+      <tr><td><code>POST /api/auth/login</code></td><td>10/min</td><td>Brute-force protection</td></tr>
+      <tr><td><code>POST /api/public/auth/login</code></td><td>10/min</td><td>Brute-force protection</td></tr>
+      <tr><td><code>POST /api/signup</code></td><td>5/min</td><td>Business-account spam</td></tr>
+      <tr><td><code>POST /api/public/auth/register</code></td><td>5/min</td><td>Customer-account spam</td></tr>
+      <tr><td><code>POST /api/public/checkout</code></td><td>10/min</td><td>See below — this one is load-bearing, not just courtesy</td></tr>
+      <tr><td><code>POST /api/public/reservations</code></td><td>10/min</td><td>Spam</td></tr>
+      <tr><td><code>POST /api/public/newsletter/subscribe</code></td><td>10/min</td><td>Spam</td></tr>
+    </table>
+
+    <div class="card warn">
+      <h4>Why checkout's limit actually matters</h4>
+      <p>Stock is reserved <em>at order creation</em>, before payment — necessary so the Stripe redirect can never oversell the last portion of a dish. Without a rate limit, that's an abuse path: spam fake checkout requests to artificially exhaust a restaurant's displayed stock without ever paying. Verified directly by hammering the endpoint and confirming the 11th request in a minute gets a 429.</p>
+    </div>
+
+    <h2>Input validation</h2>
+    <h3>Unbounded query parameters</h3>
+    <p>Six list endpoints (<code>orders</code>, <code>inventory</code> ×2, <code>purchases</code>, <code>notifications</code>, <code>transfers</code>, <code>reports/top-products</code>) accepted an unbounded <code>limit</code> query param — a client could request <code>limit=999999999</code> and force an unbounded query. Capped with <code>Query(default, le=500)</code> (or <code>le=100</code>/<code>le=1000</code> where the existing default implied a different sane ceiling).</p>
+    <h3>Unbounded quantities</h3>
+    <p>Order/refund line-item quantities had no upper bound (only <code>qty &gt; 0</code>). Capped at <code>le=100</code> — a sane ceiling for a diner order, with inventory checks still catching the realistic worst case underneath. Purchase-order quantities (wholesale restocking, staff-only) get a much higher ceiling, <code>le=100000</code>, since that's a genuinely different context.</p>
+
+    <div class="card done">
+      <h4>Caught during verification, fixed before it shipped</h4>
+      <p>A mechanical edit added <code>Query(...)</code> to six files but missed importing <code>Query</code> in one of them — crashed the whole container on startup with a <code>NameError</code>. Caught by rebuilding and checking <code>docker compose ps</code> immediately after, not assumed to have worked.</p>
+    </div>
+
+    <h2>Backups</h2>
+    <p><code>backend/scripts/backup_db.sh</code> / <code>restore_db.sh</code> — a manual (or cron-triggered) <code>pg_dump</code>/restore pair, not scheduled or shipped off-site automatically. Verified for real: a backup was taken, restored into a scratch database (not the live one), confirmed the data came back correctly, then torn down.</p>
+    <pre><code>./backend/scripts/backup_db.sh
+./backend/scripts/restore_db.sh backups/pos_db_20260730_170928.sql</code></pre>
+    <p><code>restore_db.sh</code> is destructive (drops and recreates the schema) and requires typing <code>yes</code> to confirm.</p>
+
+    <div class="card warn">
+      <h4>Why this stays manual for now</h4>
+      <p>True automated/scheduled/off-site backups depend on a hosting decision that hasn't been made yet — most managed Postgres providers (Neon included) include this for free once you're on one. Building custom scheduling infrastructure now would likely be thrown away. See <a href="deployment.html">Deployment</a>.</p>
+    </div>
+
+    <h2>What's explicitly out of scope</h2>
+    <ul>
+      <li>Distributed rate-limit storage (Redis) — would only matter if this ever ran multiple backend replicas; it doesn't.</li>
+      <li>Exhaustive max-length validation on every public string field — most rely on the database column length today, which surfaces as a 500 instead of a clean 422. Flagged, not silently ignored.</li>
+      <li>CAPTCHA / bot-detection beyond rate limiting.</li>
+      <li>IP allowlisting or WAF-type protections.</li>
+    </ul>
+
+    <footer class="page-footer">Next: <a href="design-system.html">Design System</a>.</footer>
+  </main>
+</div>
+</body>
+</html>

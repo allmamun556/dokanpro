@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account — Bavaria Genuss Restaurant</title>
+  <link rel="stylesheet" href="/site/css/site.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#c2410c" />
+  <link rel="apple-touch-icon" href="/site/icons/icon-192.svg" />
+</head>
+<body>
+  <div id="site-nav"></div>
+
+  <div class="site-page">
+    <div class="page-header">
+      <h1 data-i18n="account.title">My Account</h1>
+    </div>
+
+    <div class="card" id="profile-card"></div>
+
+    <div class="card" style="margin-top:20px;">
+      <h3 data-i18n="account.orderHistory">Order History</h3>
+      <div id="orders-list"></div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <h3 data-i18n="account.reservations">Reservations</h3>
+      <div id="reservations-list"></div>
+    </div>
+  </div>
+
+  <div id="site-footer"></div>
+
+  <script src="/site/js/translations.js"></script>
+  <script src="/site/js/site-api.js"></script>
+  <script src="/site/js/account.js"></script>
+</body>
+</html>

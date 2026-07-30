@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DokanPro Docs — API Reference</title>
+<link rel="stylesheet" href="assets/docs.css" />
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Dokan<span>Pro</span></span>
+  <span class="tag">Documentation</span>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Getting Started</a>
+    <div class="group-label">Architecture</div>
+    <a href="architecture.html">System Architecture</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="database.html">Database Schema</a>
+    <div class="group-label">Reference</div>
+    <a href="api-reference.html" class="active">API Reference</a>
+    <a href="roles-permissions.html">Roles &amp; Permissions</a>
+    <a href="payments.html">Payments</a>
+    <div class="group-label">Operations</div>
+    <a href="security-hardening.html">Security &amp; Hardening</a>
+    <a href="deployment.html">Deployment</a>
+    <a href="design-system.html">Design System</a>
+    <div class="group-label">Project</div>
+    <a href="roadmap.html">Roadmap &amp; Status</a>
+  </nav>
+  <main>
+    <h1>API Reference</h1>
+    <p class="lede">Full interactive docs (auto-generated from the Pydantic schemas) live at <code>/docs</code> on a running instance. This page is the map — what's where, and how auth works.</p>
+
+    <h2>Two API surfaces</h2>
+    <table>
+      <tr><th>Prefix</th><th>Audience</th><th>Auth</th></tr>
+      <tr><td><code>/api/*</code></td><td>Staff app</td><td>Staff JWT, permission-gated per endpoint</td></tr>
+      <tr><td><code>/api/public/*</code></td><td>Customer site</td><td>Customer JWT (optional on most endpoints — guest checkout/reservations work without an account) or fully anonymous</td></tr>
+    </table>
+
+    <h2>Authentication</h2>
+    <p>Two independent JWT systems sharing one secret key, disambiguated by a <code>type</code> claim (<code>"staff"</code> or <code>"customer"</code>) so a staff token can never be used against customer endpoints or vice versa. Both tokens also carry a <code>business_id</code> claim — this is how an authenticated request gets tenant-scoped without needing any header (see <a href="multi-tenancy.html">Multi-Tenancy</a>).</p>
+    <table>
+      <tr><th>Endpoint</th><th>Notes</th></tr>
+      <tr><td><code>POST /api/auth/login</code></td><td>Staff login. Requires tenant context (path/header) since there's no token yet.</td></tr>
+      <tr><td><code>GET /api/auth/me</code></td><td>Current staff user.</td></tr>
+      <tr><td><code>POST /api/public/auth/register</code></td><td>Customer signup.</td></tr>
+      <tr><td><code>POST /api/public/auth/login</code></td><td>Customer login.</td></tr>
+      <tr><td><code>GET /api/public/auth/me</code></td><td>Current customer.</td></tr>
+      <tr><td><code>POST /api/signup</code></td><td>Creates a new <em>business</em> (tenant) + its first admin user. See <a href="multi-tenancy.html">Multi-Tenancy</a>.</td></tr>
+      <tr><td><code>GET /api/signup/check-slug</code></td><td>Live slug-availability check.</td></tr>
+    </table>
+
+    <h2>Staff API groups (<code>/api/*</code>)</h2>
+    <table>
+      <tr><th>Group</th><th>Covers</th></tr>
+      <tr><td><code>/users</code></td><td>Staff accounts, roles, permission overrides</td></tr>
+      <tr><td><code>/products</code>, <code>/inventory</code></td><td>Catalog, stock levels, stock movement history, manual adjustments</td></tr>
+      <tr><td><code>/orders</code></td><td>POS checkout, refunds, fulfillment status, invoice PDFs</td></tr>
+      <tr><td><code>/purchases</code>, <code>/suppliers</code>, <code>/transfers</code></td><td>Purchasing, accounts payable, inter-store transfers</td></tr>
+      <tr><td><code>/customers</code></td><td>CRM — customer records, loyalty points</td></tr>
+      <tr><td><code>/discounts</code></td><td>Discount codes</td></tr>
+      <tr><td><code>/reservations</code></td><td>Table bookings, table status</td></tr>
+      <tr><td><code>/reviews</code></td><td>Reply to customer reviews</td></tr>
+      <tr><td><code>/newsletter</code></td><td>Subscriber list</td></tr>
+      <tr><td><code>/expenses</code>, <code>/reports</code></td><td>Expense tracking, dashboard stats, profit/loss</td></tr>
+      <tr><td><code>/stores</code>, <code>/settings</code></td><td>Store locations, business settings, Stripe Connect/billing status</td></tr>
+      <tr><td><code>/held-sales</code></td><td>Parked carts</td></tr>
+      <tr><td><code>/notifications</code></td><td>Sent-email log</td></tr>
+      <tr><td><code>/billing</code></td><td>Platform subscription status/checkout — see <a href="payments.html">Payments</a></td></tr>
+      <tr><td><code>/ws/orders</code></td><td>WebSocket — real-time order push for Kitchen Display / Online Orders</td></tr>
+    </table>
+
+    <h2>Public API groups (<code>/api/public/*</code>)</h2>
+    <table>
+      <tr><th>Group</th><th>Covers</th></tr>
+      <tr><td><code>/menu</code></td><td>Public menu browsing (category/product listing with ratings)</td></tr>
+      <tr><td><code>/checkout</code></td><td>Guest/customer checkout, order status lookup, Stripe webhooks</td></tr>
+      <tr><td><code>/reservations</code></td><td>Guest/customer table booking</td></tr>
+      <tr><td><code>/account</code></td><td>Logged-in customer's own orders/reservations/invoices</td></tr>
+      <tr><td><code>/discounts</code></td><td>Public coupon-code preview (cart page)</td></tr>
+      <tr><td><code>/reviews</code></td><td>Product reviews — read public, write requires a verified purchase</td></tr>
+      <tr><td><code>/newsletter</code></td><td>Subscribe/unsubscribe</td></tr>
+      <tr><td><code>/tables</code></td><td>Dine-in QR landing lookup</td></tr>
+      <tr><td><code>/recommendations</code></td><td>Rule-based "recommended for you" (weather + time-of-day + order history signals)</td></tr>
+    </table>
+
+    <div class="card warn">
+      <h4>Anonymous endpoints require tenant context</h4>
+      <p>Every public endpoint reachable without authentication depends on <code>require_tenant</code> — it 400s if <code>business_id</code> couldn't be resolved, rather than silently running an unscoped query. See <a href="multi-tenancy.html">Multi-Tenancy</a> for why this exists.</p>
+    </div>
+
+    <h2>Conventions worth knowing</h2>
+    <ul>
+      <li><strong>Server-side pricing, always.</strong> Checkout, refunds, and discount calculations never trust a client-sent amount — every price is recomputed from the product/order record.</li>
+      <li><strong>Permission dependencies</strong> are declared per-route (<code>Depends(require_permission("orders.refund"))</code>), not inferred — see <a href="roles-permissions.html">Roles &amp; Permissions</a>.</li>
+      <li><strong>List endpoints cap their <code>limit</code> parameter</strong> (typically <code>le=500</code>) — see <a href="security-hardening.html">Security &amp; Hardening</a>.</li>
+      <li><strong>Audit logging</strong> — every mutating staff endpoint calls a shared <code>log_action()</code>, recorded in <code>AuditLog</code>.</li>
+    </ul>
+
+    <footer class="page-footer">Next: <a href="roles-permissions.html">Roles &amp; Permissions</a>.</footer>
+  </main>
+</div>
+</body>
+</html>

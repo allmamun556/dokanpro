@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Stock History</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Stock History</h1>
+      <div class="export-dropdown">
+        <button class="btn btn-secondary" onclick="toggleExportMenu('history-export-menu')">Export ▾</button>
+        <div class="export-menu" id="history-export-menu">
+          <button onclick="exportMovements('csv')">CSV</button>
+          <button onclick="exportMovements('pdf')">PDF</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-row" style="margin-bottom:4px;">
+      <div>
+        <label>Product</label>
+        <select id="filter-product"><option value="">All products</option></select>
+      </div>
+      <div>
+        <label>Reason</label>
+        <select id="filter-reason">
+          <option value="">All reasons</option>
+          <option value="sale">Sale</option>
+          <option value="refund">Refund / Return</option>
+          <option value="restock">Manual Restock</option>
+          <option value="adjustment">Manual Adjustment</option>
+          <option value="purchase">Purchase</option>
+          <option value="purchase_return">Purchase Return</option>
+          <option value="transfer_in">Transfer In</option>
+          <option value="transfer_out">Transfer Out</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr><th>Date</th><th>Product</th><th>Change</th><th>Reason</th><th>Reference</th><th>By</th></tr>
+        </thead>
+        <tbody id="movement-rows"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state" style="display:none;">No stock movements found.</div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/stock-history.js"></script>
+</body>
+</html>

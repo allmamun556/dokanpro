@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — Bavaria Genuss Restaurant</title>
+  <link rel="stylesheet" href="/site/css/site.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#c2410c" />
+  <link rel="apple-touch-icon" href="/site/icons/icon-192.svg" />
+</head>
+<body>
+  <div id="site-nav"></div>
+
+  <div class="site-page" style="max-width:420px;">
+    <div class="card">
+      <h1 data-i18n="register.title">Create Account</h1>
+      <div id="error-msg" class="error-msg" style="display:none;"></div>
+      <form id="register-form">
+        <label data-i18n="register.name">Name</label>
+        <input type="text" id="name" required />
+        <label data-i18n="login.email">Email</label>
+        <input type="email" id="email" required />
+        <label data-i18n="register.phone">Phone</label>
+        <input type="text" id="phone" />
+        <label data-i18n="login.password">Password</label>
+        <input type="password" id="password" required minlength="8" />
+        <button type="submit" class="btn btn-accent btn-block" data-i18n="register.submit" style="margin-top:16px;">Create Account</button>
+      </form>
+      <p style="text-align:center; margin-top:16px; font-size:14px;">
+        <span data-i18n="register.haveAccount">Already have an account?</span> <a href="login.html" data-i18n="nav.login">Login</a>
+      </p>
+    </div>
+  </div>
+
+  <div id="site-footer"></div>
+
+  <script src="/site/js/translations.js"></script>
+  <script src="/site/js/site-api.js"></script>
+  <script>
+    renderSiteNav("register.html");
+    renderSiteFooter();
+
+    document.getElementById("register-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const errorEl = document.getElementById("error-msg");
+      errorEl.style.display = "none";
+
+      const payload = {
+        name: document.getElementById("name").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        phone: document.getElementById("phone").value.trim() || null,
+        password: document.getElementById("password").value,
+      };
+
+      try {
+        const data = await apiFetch("/auth/register", { method: "POST", body: JSON.stringify(payload) });
+        setToken(data.access_token);
+        window.location.href = "account.html";
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.style.display = "block";
+      }
+    });
+  </script>
+</body>
+</html>

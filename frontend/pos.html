@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Checkout</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Checkout</h1>
+      <button type="button" class="btn btn-secondary" onclick="openHeldSalesModal()">
+        Held Sales <span id="held-count-badge" class="badge badge-role" style="display:none;">0</span>
+      </button>
+    </div>
+
+    <div class="pos-layout">
+      <div>
+        <div style="display:flex; gap:10px;">
+          <input
+            type="text"
+            id="search"
+            class="search-bar"
+            placeholder="Search products by name or SKU..."
+            style="flex:1;"
+          />
+          <button type="button" class="btn btn-secondary" style="margin-bottom:16px;" onclick="openScanner()">📷 Scan</button>
+        </div>
+        <div id="product-grid" class="product-grid"></div>
+      </div>
+
+      <div class="card cart-panel">
+        <h3 style="margin-top:0;">Cart</h3>
+
+        <div id="customer-search-wrap" style="display:flex; gap:8px; align-items:flex-start;">
+          <div style="flex:1; position:relative;">
+            <input type="text" id="customer-search" placeholder="Customer (optional) — search by name or phone" style="margin-bottom:0;" autocomplete="off" />
+            <div id="customer-search-results" class="customer-results"></div>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="openQuickAddCustomer()">+ New</button>
+        </div>
+        <div id="customer-selected" style="display:none; font-size:13px; margin:8px 0 14px; background:#f4f5f7; border-radius:8px; padding:8px 12px; justify-content:space-between; align-items:center;">
+          <span id="customer-selected-label"></span>
+          <a href="#" onclick="removeCustomer(); return false;" style="color:var(--danger);">remove</a>
+        </div>
+
+        <div id="cart-items"></div>
+        <div id="cart-empty" class="empty-state" style="display:none;">Cart is empty — tap a product to add it.</div>
+
+        <div style="margin-top:14px; display:flex; gap:8px; align-items:flex-end;">
+          <div style="flex:1; margin-bottom:0;">
+            <label style="margin-bottom:4px;">Discount code</label>
+            <input type="text" id="discount-code" placeholder="e.g. WELCOME10" style="margin-bottom:0; text-transform:uppercase;" />
+          </div>
+          <button type="button" class="btn btn-secondary" style="margin-bottom:0;" onclick="applyDiscount()">Apply</button>
+        </div>
+        <div id="discount-applied" style="display:none; font-size:13px; color:var(--success); margin-top:6px;"></div>
+
+        <div class="cart-totals">
+          <div class="row"><span>Subtotal</span><span id="t-subtotal">$0.00</span></div>
+          <div class="row"><span>Tax</span><span id="t-tax">$0.00</span></div>
+          <div class="row" id="discount-row" style="display:none; color:var(--success);"><span>Discount</span><span id="t-discount">-$0.00</span></div>
+          <div class="row total-row"><span>Total</span><span id="t-total">$0.00</span></div>
+        </div>
+
+        <div style="margin-top:16px;">
+          <label for="payment-method">Payment method</label>
+          <select id="payment-method">
+            <option value="cash">Cash</option>
+            <option value="card">Card</option>
+            <option value="bkash">bKash</option>
+            <option value="nagad">Nagad</option>
+            <option value="rocket">Rocket</option>
+            <option value="mobile">Mobile (other)</option>
+            <option value="other">Other</option>
+          </select>
+
+          <div id="cash-tendered-wrap">
+            <label for="tendered">Cash tendered</label>
+            <input type="number" id="tendered" step="0.01" min="0" />
+          </div>
+
+          <div id="payment-reference-wrap" style="display:none;">
+            <label for="payment-reference">Transaction ID</label>
+            <input type="text" id="payment-reference" placeholder="e.g. last 4 digits or TrxID" />
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button id="hold-btn" type="button" class="btn btn-secondary" style="flex:1;" disabled onclick="openHoldModal()">Hold</button>
+          <button id="checkout-btn" class="btn btn-primary" style="flex:2;" disabled>Complete Sale</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="receipt-container"></div>
+  <div id="print-area"></div>
+
+  <div id="scanner-overlay" class="modal-overlay" style="display:none;">
+    <div class="scanner-box">
+      <h3>Scan Barcode</h3>
+      <div id="scanner-view"></div>
+      <button class="btn btn-secondary btn-block" style="margin-top:14px;" onclick="closeScanner()">Cancel</button>
+    </div>
+  </div>
+
+  <div id="quick-add-customer-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <h3>New Customer</h3>
+      <form id="quick-add-customer-form">
+        <label>Name</label>
+        <input type="text" id="qc-name" required />
+        <label>Phone</label>
+        <input type="text" id="qc-phone" />
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Save &amp; Select</button>
+          <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeQuickAddCustomer()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="hold-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <h3>Hold Sale</h3>
+      <form id="hold-form">
+        <label>Note (optional) — helps you find it later</label>
+        <input type="text" id="hold-note" placeholder="e.g. Table 5, John's order" />
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Hold Sale</button>
+          <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeHoldModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="held-sales-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box" style="width:480px;">
+      <h3>Held Sales</h3>
+      <div id="held-sales-list"></div>
+      <button class="btn btn-secondary btn-block" style="margin-top:14px;" onclick="closeHeldSalesModal()">Close</button>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/pos.js"></script>
+</body>
+</html>

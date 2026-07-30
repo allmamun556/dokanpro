@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DokanPro Docs — Roadmap &amp; Status</title>
+<link rel="stylesheet" href="assets/docs.css" />
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Dokan<span>Pro</span></span>
+  <span class="tag">Documentation</span>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="index.html">Overview</a>
+    <a href="getting-started.html">Getting Started</a>
+    <div class="group-label">Architecture</div>
+    <a href="architecture.html">System Architecture</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="database.html">Database Schema</a>
+    <div class="group-label">Reference</div>
+    <a href="api-reference.html">API Reference</a>
+    <a href="roles-permissions.html">Roles &amp; Permissions</a>
+    <a href="payments.html">Payments</a>
+    <div class="group-label">Operations</div>
+    <a href="security-hardening.html">Security &amp; Hardening</a>
+    <a href="deployment.html">Deployment</a>
+    <a href="design-system.html">Design System</a>
+    <div class="group-label">Project</div>
+    <a href="roadmap.html" class="active">Roadmap &amp; Status</a>
+  </nav>
+  <main>
+    <h1>Roadmap &amp; Status</h1>
+    <p class="lede">An honest accounting of what's built and verified, what's deliberately deferred, and what would actually block selling this to strangers.</p>
+
+    <h2>Built and verified</h2>
+    <table>
+      <tr><td><span class="badge badge-done">Done</span></td><td>Core POS — checkout, inventory, purchasing, suppliers, transfers, expenses, reporting</td></tr>
+      <tr><td><span class="badge badge-done">Done</span></td><td>Restaurant platform — online ordering, reservations, kitchen display, table QR ordering, loyalty points, reviews</td></tr>
+      <tr><td><span class="badge badge-done">Done</span></td><td>Multi-tenancy — real row-level isolation, verified with a negative test (cross-tenant request returns 404, not 403)</td></tr>
+      <tr><td><span class="badge badge-done">Done</span></td><td>Self-serve signup — a restaurant owner can create their own tenant without anyone running a script for them</td></tr>
+      <tr><td><span class="badge badge-done">Done</span></td><td>Stripe Connect — diner payments route to each restaurant's own account, not the platform's</td></tr>
+      <tr><td><span class="badge badge-done">Done</span></td><td>Stripe Subscriptions — platform billing wired up and tracked</td></tr>
+      <tr><td><span class="badge badge-done">Done</span></td><td>Rate limiting, input validation, backup/restore scripts</td></tr>
+      <tr><td><span class="badge badge-done">Done</span></td><td>PWA correctness — per-tenant install manifest, offline menu caching</td></tr>
+      <tr><td><span class="badge badge-done">Done</span></td><td>Visual design — "Warm &amp; Craft" system applied consistently across staff app + customer site</td></tr>
+    </table>
+
+    <h2>Deliberately deferred (not oversights)</h2>
+    <div class="card">
+      <h4><span class="badge badge-partial">Tracked, not enforced</span> Subscription paywall</h4>
+      <p>A lapsed or missing subscription is recorded but doesn't block access yet. Chosen explicitly — enforcement means deciding grace periods and which features (if any) stay accessible, real scope not needed until you're ready to actually rely on payment mattering.</p>
+    </div>
+    <div class="card">
+      <h4><span class="badge badge-partial">Standard accounts only</span> No per-transaction platform fee</h4>
+      <p>Revenue is subscription-only. A transaction-based cut would need Express/Custom Connect accounts instead of Standard — more platform liability and support burden, a genuinely separate piece of work if wanted later.</p>
+    </div>
+    <div class="card">
+      <h4><span class="badge badge-partial">No verification gate</span> Email verification</h4>
+      <p>Neither customer registration nor business signup blocks on verifying the email address — matches the existing "MVP-first" precedent throughout this build.</p>
+    </div>
+
+    <h2>What would actually block selling this publicly</h2>
+    <div class="card warn">
+      <h4><span class="badge badge-todo">Blocker</span> No legal documents</h4>
+      <p>No Terms of Service, Privacy Policy, or Data Processing Agreement. Not a formality — the moment a second real business signs up, this is a genuine compliance requirement (GDPR applies). Needs a lawyer or a template service (Termly, iubenda) filled in with real business details — this is not something that can be drafted as generic boilerplate.</p>
+    </div>
+    <div class="card warn">
+      <h4><span class="badge badge-todo">Blocker</span> Real Stripe Connect onboarding never completed by a human</h4>
+      <p>Verified thoroughly at the API level (account creation, charge routing, webhooks), but nobody has walked through Stripe's actual hosted KYC flow end to end — it resists headless browser automation as an anti-fraud measure. A real business's onboarding could surface friction not yet seen.</p>
+    </div>
+    <div class="card warn">
+      <h4><span class="badge badge-todo">Not yet exercised</span> Real deployment</h4>
+      <p>Everything has run in local Docker Compose. Deploying to a real host (see <a href="deployment.html">Deployment</a>) always surfaces something — env vars, cold starts, migration against a real remote database.</p>
+    </div>
+    <div class="card warn">
+      <h4><span class="badge badge-todo">Missing</span> Error monitoring</h4>
+      <p>No Sentry or equivalent. If something breaks for a real customer, the first sign of it today would be them telling you, not an alert.</p>
+    </div>
+
+    <h2>Recommendation</h2>
+    <p>Not "flip a switch and sell publicly." A small, trusted beta — one or two real restaurants, told explicitly it's early, possibly free for the first few months in exchange for feedback. That exercises the real Connect onboarding, a real subscription payment, and real usage patterns with people who'll forgive rough edges, before taking money from strangers who won't.</p>
+
+    <footer class="page-footer">Back to <a href="index.html">Overview</a>.</footer>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DokanPro Docs — Overview</title>
+<link rel="stylesheet" href="assets/docs.css" />
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Dokan<span>Pro</span></span>
+  <span class="tag">Documentation</span>
+</div>
+<div class="layout">
+  <nav class="sidebar">
+    <a href="index.html" class="active">Overview</a>
+    <a href="getting-started.html">Getting Started</a>
+    <div class="group-label">Architecture</div>
+    <a href="architecture.html">System Architecture</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="database.html">Database Schema</a>
+    <div class="group-label">Reference</div>
+    <a href="api-reference.html">API Reference</a>
+    <a href="roles-permissions.html">Roles &amp; Permissions</a>
+    <a href="payments.html">Payments</a>
+    <div class="group-label">Operations</div>
+    <a href="security-hardening.html">Security &amp; Hardening</a>
+    <a href="deployment.html">Deployment</a>
+    <a href="design-system.html">Design System</a>
+    <div class="group-label">Project</div>
+    <a href="roadmap.html">Roadmap &amp; Status</a>
+  </nav>
+  <main>
+    <h1>DokanPro</h1>
+    <p class="lede">A multi-tenant restaurant &amp; retail management platform — point of sale, online ordering, reservations, and staff operations, built to be sold as SaaS to independent restaurants.</p>
+
+    <p>DokanPro started as a single-store retail POS system and grew into a full restaurant platform: online ordering with Stripe payments, table reservations, a kitchen display, loyalty points, and — as of the most recent work — genuine multi-tenancy, so many independent restaurants can run on one deployment, each fully isolated from the others, each with their own Stripe account for payments and their own subscription to the platform.</p>
+
+    <h2>What's in this documentation</h2>
+    <div class="grid-cards">
+      <a class="card" href="getting-started.html">
+        <h4>Getting Started</h4>
+        <p>Run it locally, default accounts, key URLs.</p>
+      </a>
+      <a class="card" href="architecture.html">
+        <h4>System Architecture</h4>
+        <p>Tech stack, modular monolith, request flow.</p>
+      </a>
+      <a class="card" href="multi-tenancy.html">
+        <h4>Multi-Tenancy</h4>
+        <p>How tenant isolation actually works, end to end.</p>
+      </a>
+      <a class="card" href="database.html">
+        <h4>Database Schema</h4>
+        <p>Core models, relationships, migration history.</p>
+      </a>
+      <a class="card" href="api-reference.html">
+        <h4>API Reference</h4>
+        <p>Staff API, public API, auth model, key endpoints.</p>
+      </a>
+      <a class="card" href="roles-permissions.html">
+        <h4>Roles &amp; Permissions</h4>
+        <p>Who can do what, and how it's enforced.</p>
+      </a>
+      <a class="card" href="payments.html">
+        <h4>Payments</h4>
+        <p>Stripe Connect (diner payments) + Subscriptions (platform billing).</p>
+      </a>
+      <a class="card" href="security-hardening.html">
+        <h4>Security &amp; Hardening</h4>
+        <p>Rate limiting, input validation, backups.</p>
+      </a>
+      <a class="card" href="deployment.html">
+        <h4>Deployment</h4>
+        <p>Hosting notes, environment variables, going live.</p>
+      </a>
+      <a class="card" href="design-system.html">
+        <h4>Design System</h4>
+        <p>The "Warm &amp; Craft" visual language and its tokens.</p>
+      </a>
+      <a class="card" href="roadmap.html">
+        <h4>Roadmap &amp; Status</h4>
+        <p>What's built, what's deliberately deferred, what's next.</p>
+      </a>
+    </div>
+
+    <h2>At a glance</h2>
+    <table>
+      <tr><th>Backend</th><td>FastAPI + SQLAlchemy 2.0 + PostgreSQL, Alembic migrations</td></tr>
+      <tr><th>Frontend</th><td>Vanilla JS/HTML/CSS — no build step, no framework</td></tr>
+      <tr><th>Deployment unit</th><td>Two Docker Compose services (backend + db); one process serves API and frontend together</td></tr>
+      <tr><th>Tenancy model</th><td>Shared database, row-level isolation via <code>business_id</code>, enforced by a global SQLAlchemy query filter</td></tr>
+      <tr><th>Payments</th><td>Stripe Connect (Standard accounts) for diner payments, Stripe Subscriptions for platform billing</td></tr>
+      <tr><th>Two frontends</th><td>Staff app (POS, inventory, orders, admin) and a separate customer-facing ordering site, per tenant</td></tr>
+    </table>
+
+    <footer class="page-footer">DokanPro internal documentation. Reflects the codebase as of the multi-tenancy + payments + hardening work.</footer>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Settings</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Settings</h1>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <h3 style="margin-top:0;">Business Settings</h3>
+      <form id="business-form">
+        <div class="form-row">
+          <div>
+            <label>Business name</label>
+            <input type="text" id="bs-name" required />
+          </div>
+          <div>
+            <label>Currency symbol</label>
+            <input type="text" id="bs-currency" maxlength="10" required />
+          </div>
+        </div>
+        <label>Address</label>
+        <input type="text" id="bs-address" />
+        <div class="form-row">
+          <div>
+            <label>Default VAT / tax rate (%)</label>
+            <input type="number" id="bs-vat" step="0.01" min="0" />
+          </div>
+          <div>
+            <label>Receipt footer</label>
+            <input type="text" id="bs-footer" />
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Business Settings</button>
+      </form>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <h3 style="margin-top:0;">Payments &amp; Billing</h3>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border, #eee);">
+        <div>
+          <strong>Accept online payments</strong>
+          <div id="connect-status" style="font-size:13px; color:var(--text-muted, #666);">Checking…</div>
+        </div>
+        <button type="button" class="btn btn-primary" id="connect-btn">Connect Stripe</button>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0;">
+        <div>
+          <strong>Subscription</strong>
+          <div id="billing-status" style="font-size:13px; color:var(--text-muted, #666);">Checking…</div>
+        </div>
+        <button type="button" class="btn btn-primary" id="subscribe-btn">Subscribe</button>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3 style="margin-top:0;">Brands</h3>
+        <form id="brand-form" style="display:flex; gap:10px; align-items:flex-end;">
+          <div style="flex:1; margin-bottom:14px;">
+            <label>New brand name</label>
+            <input type="text" id="brand-name" required style="margin-bottom:0;" />
+          </div>
+          <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+        <table>
+          <thead><tr><th>Name</th></tr></thead>
+          <tbody id="brand-rows"></tbody>
+        </table>
+        <div id="brand-empty" class="empty-state" style="display:none;">No brands yet.</div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0;">Units</h3>
+        <form id="unit-form">
+          <div class="form-row">
+            <div>
+              <label>Name</label>
+              <input type="text" id="unit-name" placeholder="e.g. Kilogram" required />
+            </div>
+            <div>
+              <label>Abbreviation</label>
+              <input type="text" id="unit-abbr" placeholder="e.g. kg" required />
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+        <table>
+          <thead><tr><th>Name</th><th>Abbreviation</th></tr></thead>
+          <tbody id="unit-rows"></tbody>
+        </table>
+        <div id="unit-empty" class="empty-state" style="display:none;">No units yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/settings.js"></script>
+</body>
+</html>

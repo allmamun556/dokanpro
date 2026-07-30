@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Kitchen Display</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .kitchen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    .kitchen-card { background: #fff; border: 2px solid var(--border); border-radius: var(--radius); padding: 20px; }
+    .kitchen-card .order-num { font-size: 28px; font-weight: 800; }
+    .kitchen-card .order-source { font-size: 16px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+    .kitchen-card .item-line { font-size: 20px; padding: 4px 0; }
+    .kitchen-card .item-note { font-size: 15px; color: var(--danger); font-weight: 600; padding-left: 8px; }
+    .kitchen-card .kitchen-btn { font-size: 18px; padding: 12px; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Kitchen Display</h1>
+    </div>
+
+    <div class="kitchen-grid" id="kitchen-grid"></div>
+    <div id="empty-state" class="empty-state" style="display:none;">No orders in the kitchen right now.</div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/kitchen-display.js"></script>
+</body>
+</html>

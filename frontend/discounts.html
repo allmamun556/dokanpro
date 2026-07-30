@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Discounts</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Discounts & Promotions</h1>
+      <button class="btn btn-primary" onclick="openDiscountModal()">+ New Discount</button>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Value</th>
+            <th>Min. Subtotal</th>
+            <th>Window</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="discount-rows"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state" style="display:none;">No discounts yet.</div>
+    </div>
+  </div>
+
+  <div id="discount-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box">
+      <h3 id="modal-title">New Discount</h3>
+      <form id="discount-form">
+        <input type="hidden" id="d-id" />
+        <div class="form-row">
+          <div>
+            <label>Code</label>
+            <input type="text" id="d-code" required style="text-transform:uppercase;" />
+          </div>
+          <div>
+            <label>Name</label>
+            <input type="text" id="d-name" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div>
+            <label>Type</label>
+            <select id="d-type">
+              <option value="percentage">Percentage (%)</option>
+              <option value="fixed">Fixed amount</option>
+            </select>
+          </div>
+          <div>
+            <label>Value</label>
+            <input type="number" id="d-value" step="0.01" min="0.01" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div>
+            <label>Minimum order subtotal</label>
+            <input type="number" id="d-min-subtotal" step="0.01" min="0" value="0" />
+          </div>
+          <div>
+            <label>
+              <input type="checkbox" id="d-active" style="width:auto; margin-right:8px;" checked />
+              Active
+            </label>
+          </div>
+        </div>
+        <div class="form-row">
+          <div>
+            <label>Starts at (optional)</label>
+            <input type="datetime-local" id="d-starts-at" />
+          </div>
+          <div>
+            <label>Ends at (optional)</label>
+            <input type="datetime-local" id="d-ends-at" />
+          </div>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Save</button>
+          <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeDiscountModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/discounts.js"></script>
+</body>
+</html>

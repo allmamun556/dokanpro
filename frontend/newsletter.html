@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Newsletter</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Newsletter Subscribers</h1>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Subscribed</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="subscriber-rows"></tbody>
+      </table>
+      <div id="empty-state" class="empty-state" style="display:none;">No subscribers yet.</div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/newsletter.js"></script>
+</body>
+</html>

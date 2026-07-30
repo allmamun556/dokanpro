@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DokanPro — Reports</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="nav"></div>
+
+  <div class="page">
+    <div class="page-header">
+      <h1>Reports</h1>
+      <select id="period-select" style="width:auto; margin:0;">
+        <option value="7">Last 7 days</option>
+        <option value="14" selected>Last 14 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="90">Last 90 days</option>
+      </select>
+    </div>
+
+    <div class="grid grid-4" style="margin-bottom:20px;">
+      <div class="stat-card">
+        <div class="label">Total Sales</div>
+        <div class="value" id="stat-sales">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Orders</div>
+        <div class="value" id="stat-orders">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Avg Order Value</div>
+        <div class="value" id="stat-aov">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Low Stock Items</div>
+        <div class="value" id="stat-lowstock">—</div>
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-bottom:20px;">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="margin:0;">Daily Sales</h3>
+          <div class="export-dropdown">
+            <button class="btn btn-secondary btn-sm" onclick="toggleExportMenu('sales-export-menu')">Export ▾</button>
+            <div class="export-menu" id="sales-export-menu">
+              <button onclick="exportSales('csv')">CSV</button>
+              <button onclick="exportSales('pdf')">PDF</button>
+            </div>
+          </div>
+        </div>
+        <canvas id="daily-sales-chart" height="220"></canvas>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Top Products</h3>
+        <canvas id="top-products-chart" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h3 style="margin-top:0;">Sales by Cashier</h3>
+        <table>
+          <thead><tr><th>Cashier</th><th>Orders</th><th>Total</th></tr></thead>
+          <tbody id="cashier-rows"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="margin:0;">Low Stock Alerts</h3>
+          <div class="export-dropdown">
+            <button class="btn btn-secondary btn-sm" onclick="toggleExportMenu('lowstock-export-menu')">Export ▾</button>
+            <div class="export-menu" id="lowstock-export-menu">
+              <button onclick="exportLowStock('csv')">CSV</button>
+              <button onclick="exportLowStock('pdf')">PDF</button>
+            </div>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>SKU</th><th>Product</th><th>Stock</th><th>Reorder Level</th></tr></thead>
+          <tbody id="lowstock-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0;">Expiring Products (next 30 days)</h3>
+        <div class="export-dropdown">
+          <button class="btn btn-secondary btn-sm" onclick="toggleExportMenu('expiring-export-menu')">Export ▾</button>
+          <div class="export-menu" id="expiring-export-menu">
+            <button onclick="exportExpiring('csv')">CSV</button>
+            <button onclick="exportExpiring('pdf')">PDF</button>
+          </div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>SKU</th><th>Product</th><th>Expiry Date</th><th>Quantity</th><th>Status</th></tr></thead>
+        <tbody id="expiring-rows"></tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0;">Profit &amp; Loss</h3>
+        <div class="export-dropdown">
+          <button class="btn btn-secondary btn-sm" onclick="toggleExportMenu('profit-export-menu')">Export ▾</button>
+          <div class="export-menu" id="profit-export-menu">
+            <button onclick="exportProfit('csv')">CSV</button>
+            <button onclick="exportProfit('pdf')">PDF</button>
+          </div>
+        </div>
+      </div>
+      <table>
+        <tbody id="profit-rows"></tbody>
+      </table>
+      <div style="font-size:12px; color:var(--text-muted); margin-top:10px;">
+        Estimate: uses each product's current cost, not a historical cost snapshot per sale.
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/reports.js"></script>
+</body>
+</html>
