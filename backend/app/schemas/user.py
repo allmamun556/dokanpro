@@ -14,6 +14,7 @@ class UserCreate(BaseModel):
     position: Optional[str] = None
     hire_date: Optional[date] = None
     salary: Optional[float] = None
+    permission_overrides: Optional[dict[str, bool]] = None
 
 
 class UserUpdate(BaseModel):

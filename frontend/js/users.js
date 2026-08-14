@@ -11,6 +11,7 @@ async function init() {
   await loadPermissionsCatalog();
   await loadUsers();
   document.getElementById("user-form").addEventListener("submit", submitUser);
+  document.getElementById("u-role").addEventListener("change", _onRoleChange);
 }
 
 async function loadPermissionsCatalog() {
@@ -82,34 +83,57 @@ function openUserModal(user = null) {
   document.getElementById("u-email").disabled = !!user;
 
   const permsSection = document.getElementById("permissions-section");
-  if (user && permissionsCatalog.length > 0) {
+  if (permissionsCatalog.length > 0) {
     permsSection.style.display = "block";
-    const overrides = user.permission_overrides || {};
-    document.getElementById("permissions-list").innerHTML = permissionsCatalog
-      .map((p) => {
-        const current = p.key in overrides ? (overrides[p.key] ? "allow" : "deny") : "default";
-        return `
-          <div class="form-row" style="align-items:center; margin-bottom:6px;">
-            <div style="flex:2;">
-              <div style="font-weight:600; font-size:13px;">${escapeHtml(p.label)}</div>
-              <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(p.description)}</div>
-            </div>
-            <div style="flex:1;">
-              <select data-perm-key="${p.key}" style="margin:0;">
-                <option value="default" ${current === "default" ? "selected" : ""}>Default</option>
-                <option value="allow" ${current === "allow" ? "selected" : ""}>Allow</option>
-                <option value="deny" ${current === "deny" ? "selected" : ""}>Deny</option>
-              </select>
-            </div>
-          </div>
-        `;
-      })
-      .join("");
+    const overrides = user ? user.permission_overrides || {} : {};
+    renderPermissionsList(overrides);
   } else {
     permsSection.style.display = "none";
   }
 
   document.getElementById("user-modal").style.display = "flex";
+}
+
+// What "Default" resolves to for the role currently selected in the form —
+// recomputed on every render so switching roles updates the hint live.
+function _defaultLabelFor(permKey) {
+  const role = document.getElementById("u-role").value;
+  const allowed = role === "admin" ? true : !!(ROLE_PERMISSION_DEFAULTS[role] || {})[permKey];
+  return allowed ? "Default (Allowed)" : "Default (Denied)";
+}
+
+function renderPermissionsList(overrides) {
+  document.getElementById("permissions-list").innerHTML = permissionsCatalog
+    .map((p) => {
+      const current = p.key in overrides ? (overrides[p.key] ? "allow" : "deny") : "default";
+      return `
+        <div class="form-row" style="align-items:center; margin-bottom:6px;">
+          <div style="flex:2;">
+            <div style="font-weight:600; font-size:13px;">${escapeHtml(p.label)}</div>
+            <div style="font-size:11px; color:var(--text-muted);">${escapeHtml(p.description)}</div>
+          </div>
+          <div style="flex:1;">
+            <select data-perm-key="${p.key}" style="margin:0;">
+              <option value="default" ${current === "default" ? "selected" : ""}>${_defaultLabelFor(p.key)}</option>
+              <option value="allow" ${current === "allow" ? "selected" : ""}>Allow</option>
+              <option value="deny" ${current === "deny" ? "selected" : ""}>Deny</option>
+            </select>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+// Re-label each "Default" option when the base role changes, without
+// discarding any explicit Allow/Deny choices already made.
+function _onRoleChange() {
+  const overrides = {};
+  document.querySelectorAll("#permissions-list select[data-perm-key]").forEach((select) => {
+    if (select.value === "allow") overrides[select.dataset.permKey] = true;
+    else if (select.value === "deny") overrides[select.dataset.permKey] = false;
+  });
+  if (permissionsCatalog.length > 0) renderPermissionsList(overrides);
 }
 
 function closeUserModal() {
@@ -130,14 +154,14 @@ async function submitUser(e) {
     salary: document.getElementById("u-salary").value ? parseFloat(document.getElementById("u-salary").value) : null,
   };
 
+  const permission_overrides = {};
+  document.querySelectorAll("#permissions-list select[data-perm-key]").forEach((select) => {
+    if (select.value === "allow") permission_overrides[select.dataset.permKey] = true;
+    else if (select.value === "deny") permission_overrides[select.dataset.permKey] = false;
+  });
+
   try {
     if (id) {
-      const permission_overrides = {};
-      document.querySelectorAll("#permissions-list select[data-perm-key]").forEach((select) => {
-        if (select.value === "allow") permission_overrides[select.dataset.permKey] = true;
-        else if (select.value === "deny") permission_overrides[select.dataset.permKey] = false;
-      });
-
       const payload = Object.assign(
         {
           name: document.getElementById("u-name").value.trim(),
@@ -157,6 +181,7 @@ async function submitUser(e) {
           email: document.getElementById("u-email").value.trim(),
           password,
           role: document.getElementById("u-role").value,
+          permission_overrides,
         },
         profileFields
       );

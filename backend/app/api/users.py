@@ -38,6 +38,7 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db), current_user
         position=payload.position,
         hire_date=payload.hire_date,
         salary=payload.salary,
+        permission_overrides=payload.permission_overrides,
     )
     db.add(user)
     db.flush()
